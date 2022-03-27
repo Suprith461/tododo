@@ -1,0 +1,5 @@
+1)Create bottom navigation 
+
+
+Timer tab notes:
+1) Whenever a session ends ask options (save,don't save and discard)
