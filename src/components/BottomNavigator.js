@@ -1,10 +1,11 @@
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs'; 
-import { FontAwesome,Ionicons,Feather,Entypo} from '@expo/vector-icons';
+import { FontAwesome,Ionicons,Feather,Entypo,MaterialIcons,FontAwesome5,Foundation} from '@expo/vector-icons';
 import Calendar from './../screens/Calendar/Calendar'
 import Todo from './../screens/Todo/Todo'
 import Timer from './../screens/Timer/Timer'
 import Statistics from './../screens/Statistics/Statistics'
 import Settings from '../screens/Settings/Settings';
+
 
 
 export default function BottomNavigator() {
@@ -13,7 +14,7 @@ export default function BottomNavigator() {
     return (
             
 
-            <Tabs.Navigator barStyle={{ backgroundColor: '#f69b31'}} initialRouteName={"Timer"}>
+            <Tabs.Navigator barStyle={{ backgroundColor: 'white'}} initialRouteName={"Timer"} shifting={false}>
             
               <Tabs.Screen name="Calendar"
                 component={Calendar}
@@ -21,7 +22,7 @@ export default function BottomNavigator() {
                 headerShown:false,
                 tabBarLabel: 'Calendar',
                 tabBarIcon: ({ color }) => (
-                  <FontAwesome name="home" size={24} color="black" />
+                  <FontAwesome5 name="calendar" size={24} color={color} />
                 ),
               }}
                />
@@ -32,7 +33,7 @@ export default function BottomNavigator() {
                 options={{
                   tabBarLabel: 'Todo',
                   tabBarIcon: ({ color }) => (
-                    <Ionicons name="md-grid" size={24} color="black" />                ),
+                    <Ionicons name="checkmark-done" size={24} color={color} />                ),
               }}
                 />
               
@@ -42,7 +43,7 @@ export default function BottomNavigator() {
                 options={{    
                   tabBarLabel: 'Timer',
                   tabBarIcon: ({ color }) => (
-                    <FontAwesome name="search" size={24} color="black" />),
+                    <MaterialIcons name="timer" size={24} color={color} />),
               }}  
                 />
 
@@ -53,7 +54,7 @@ export default function BottomNavigator() {
                 options={{
                   tabBarLabel: 'Statistics',
                   tabBarIcon: ({ color }) => (
-                    <Entypo name="camera" size={24} color="black" />            ),
+                    <Foundation name="graph-bar" size={24} color={color} />            ),
               }}
               />
               
@@ -64,7 +65,7 @@ export default function BottomNavigator() {
                 options={{
                   tabBarLabel: 'Settings',
                   tabBarIcon: ({ color }) => (
-                    <Feather name="shopping-bag" size={24} color="black" />),
+                    <Feather name="settings" size={24} color={color} />),
                  
                    
                 }}
