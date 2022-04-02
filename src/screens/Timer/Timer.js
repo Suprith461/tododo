@@ -4,7 +4,7 @@ import  React,{useState} from 'react';
 import { PickerItem } from 'react-native-woodpicker'
 import { Picker } from 'react-native-woodpicker'
 //import CircularProgress from 'react-native-circular-progress-indicator';
-
+import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
 export default function Timer(){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
@@ -27,16 +27,13 @@ export default function Timer(){
             </View>
 
 
-            {/* <CircularProgress
-              value={60}
-              radius={120}
-              duration={2000}
-              progressValueColor={'#ecf0f1'}
-              maxValue={200}
-              title={'KM/H'}
-              titleColor={'white'}
-              titleStyle={{fontWeight: 'bold'}}
-            /> */}
+            <AnimatedCircularProgress
+              size={120}
+              width={15}
+              fill={100}
+              tintColor="#00e0ff"
+              onAnimationComplete={() => console.log('onAnimationComplete')}
+              backgroundColor="#3d5875" />
 
 
             <Modal
