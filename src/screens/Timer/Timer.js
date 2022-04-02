@@ -1,41 +1,97 @@
-import { StyleSheet, Text, View ,TouchableOpacity, Modal} from 'react-native';
+import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing} from 'react-native';
 
-import  React,{useState} from 'react';
-import { PickerItem } from 'react-native-woodpicker'
-import { Picker } from 'react-native-woodpicker'
-//import CircularProgress from 'react-native-circular-progress-indicator';
+import  React,{useState,useRef} from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
 export default function Timer(){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
+    const progressBarRef = useRef(null)
 
     const [pickedTime,setPickedTime] = useState(false);
-    const data: Array<PickerItem> = [
-      { label: "DataCat", value: 1 },
-      { label: "DataDog", value: 2 },
-      { label: "DataSnake", value: 3 },
-      { label: "DataPlatypus", value: 4 },
-      { label: "DataWhale", value: 5 }
-    ];
+    
     return(
         <View style={styles.rootView}>
 
-            <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:25}}>
-                <TouchableOpacity style={styles.targetHours} onPress={()=>{setTimerModalStatus(true)}}>
+            <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:40,borderWidth:1,borderColor:'white'}}>
+                <TouchableOpacity style={styles.targetHours} onPress={()=>{//setTimerModalStatus(true)
+                ;progressBarRef.current.animate(100, 8000, Easing.quad); }}>
                     <Text style={{color:'white',fontSize:20,fontWeight:'700',marginHorizontal:10}}>0/0.5</Text>
                 </TouchableOpacity>
             </View>
 
+            {/*Should show current time here */}
+            <View style={{width:"100%",height:25,borderWidth:1,borderColor:'white'}}>
 
-            <AnimatedCircularProgress
-              size={120}
-              width={15}
-              fill={100}
-              tintColor="#00e0ff"
-              onAnimationComplete={() => console.log('onAnimationComplete')}
-              backgroundColor="#3d5875" />
+            </View>
+
+            {/*All the text part comes here */}
+            <View style={{height:180,width:"90%",borderWidth:1,borderColor:'white',marginHorizontal:"5%",display:'flex',alignItems:'center',justifyContent:"flex-end"}}>
+                  <TouchableOpacity><Text style={{color:"#FFFFFF90",fontSize:16}}>Comment/Note...</Text></TouchableOpacity>
+                  <Text style={{color:"#FFFFFF",fontSize:16}}>Beat Distarctions!</Text>
+                  <Text style={{color:"#FFFFFF",fontSize:40,fontWeight:"bold"}}>00:00</Text>
+            </View>
+            
+
+           {/*The circle */}
+           <View style={{height:250,width:"90%",margin:'5%',display:'flex',alignItems:'center',alignContent:'center'}}>
+                <AnimatedCircularProgress
+                  ref={(ref) => progressBarRef.current = ref}
+                  size={250}
+                  width={8}
+                  fill={25}
+                  tintColor="black"
+                  onAnimationComplete={() => console.log('onAnimationComplete')}
+                  backgroundColor="#FFFFFF50" 
+    
+                >
+                  {
+                    ()=>(
+                      <TouchableOpacity style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1}}>
+                        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
+                          Hit Me
+                        </Text>
+                        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
+                          When you are distracted!
+                        </Text>
+                      </TouchableOpacity>
+                    )
+                  }
+                </AnimatedCircularProgress>
+            </View>
+
+            {/*All the buttons like resume ,pause,stop */}
+            <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',margin:"5%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+                  <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Timer</Text></TouchableOpacity>
+                  <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Stopwatch</Text></TouchableOpacity>
+            </View>
+
+            {/*Label section */}
+            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}}>
+              <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>Unlabeled</Text>
+              
+              
+              <MaterialCommunityIcons name="label-outline" size={30} color="gray" style={{transform: [{rotateY: '180deg'}]}}/>
+            </TouchableOpacity>
+              
+
+           
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={true}
+              style={{position:"absolute"}}
+              
+            >
+              <View style={{display:"flex",width:"100%",backgroundColor:'white',position:'absolute',bottom:5,zIndex:10}}>
+
+              </View>
+            </Modal>
 
 
+
+            {/*Modal in the center for selecting time */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -53,18 +109,7 @@ export default function Timer(){
                     </View>
 
                     <View>
-                      <Picker
-                        item={pickedTime}
-                        items={data}
-                        onItemChange={setPickedTime}
-                        title="Data Picker"
-                        placeholder="Select Data"
-                        isNullable={false}
-                      //backdropAnimation={{ opacity: 0 }}
-                        mode="dropdown"
-                      //isNullable
-                      //disable
-                      />
+                    
                     </View>
                     <View style={{display:'flex',flexDirection:'row',alignItems:'flex-end', justifyContent:'flex-end',borderWidth:1}}>
                         <TouchableOpacity><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
@@ -82,7 +127,7 @@ const styles = StyleSheet.create({
     rootView: {
       display:'flex',
       flex:1,
-      flexDirection:'row',
+      flexDirection:'column',
       backgroundColor:'black'
     },
     targetHours:{
