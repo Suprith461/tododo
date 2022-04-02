@@ -1,22 +1,55 @@
-import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing} from 'react-native';
+import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList} from 'react-native';
 
 import  React,{useState,useRef} from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
-export default function Timer(){
+export default function Timer({navigation}){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
+    const [labelModalStatus,setLabelModalStatus] = useState(false)
     const progressBarRef = useRef(null)
 
     const [pickedTime,setPickedTime] = useState(false);
+    const labelData=[
+      {color:"green",index:0,label:"Test1"},
+      {color:"red",index:1,label:"Test1"},
+      {color:"pink",index:2,label:"Test1"},
+      {color:"blue",index:3,label:"Test1"}
+  ]
+
+  function LabelComponent({color,index,label}){
+    return(
+      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}}>
+        <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
+          <View style={{height:10,width:10,borderRadius:10,backgroundColor:color}}></View>
+        </View>
+        <View style={{display:'flex',flex:0.75,justifyContent:"center"}}>
+          <Text >{label}</Text>
+        </View>
+    </TouchableOpacity>
+    )
+
+  }
+
+  function LabelSectionFooter(){
+    return(
+      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{navigation.navigate("addLabel")}}>
+        <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
+        
+        </View>
+        <View style={{display:'flex',flex:0.75,justifyContent:"center"}}>
+          <Text >Add label</Text>
+        </View>
+      </TouchableOpacity>
+    )
+  }
     
     return(
         <View style={styles.rootView}>
 
             <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:40,borderWidth:1,borderColor:'white'}}>
-                <TouchableOpacity style={styles.targetHours} onPress={()=>{//setTimerModalStatus(true)
-                ;progressBarRef.current.animate(100, 8000, Easing.quad); }}>
+                <TouchableOpacity style={styles.targetHours} onPress={()=>{setTimerModalStatus(true)}}>
                     <Text style={{color:'white',fontSize:20,fontWeight:'700',marginHorizontal:10}}>0/0.5</Text>
                 </TouchableOpacity>
             </View>
@@ -68,7 +101,7 @@ export default function Timer(){
             </View>
 
             {/*Label section */}
-            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}}>
+            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>setLabelModalStatus(true)}>
               <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>Unlabeled</Text>
               
               
@@ -80,12 +113,23 @@ export default function Timer(){
             <Modal
               animationType="slide"
               transparent={true}
-              visible={true}
-              style={{position:"absolute"}}
+              visible={labelModalStatus}
+              style={{display:'flex'}}
+              onRequestClose={()=>setLabelModalStatus(false)}
+            
               
             >
               <View style={{display:"flex",width:"100%",backgroundColor:'white',position:'absolute',bottom:5,zIndex:10}}>
+                
+                <FlatList
+                  ListFooterComponent={LabelSectionFooter}
+                  data={labelData}
+                  CellRendererComponent={({item})=>(<LabelComponent color={item.color} label={item.label} index={item.index}/>)}
+                  keyExtractor={item=>item.index}
+                />
 
+               
+              
               </View>
             </Modal>
 

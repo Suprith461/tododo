@@ -2,9 +2,10 @@ import { createMaterialBottomTabNavigator } from '@react-navigation/material-bot
 import { FontAwesome,Ionicons,Feather,Entypo,MaterialIcons,FontAwesome5,Foundation} from '@expo/vector-icons';
 import Calendar from './../screens/Calendar/Calendar'
 import Todo from './../screens/Todo/Todo'
-import Timer from './../screens/Timer/Timer'
+//import Timer from './../screens/Timer/Timer'
 import Statistics from './../screens/Statistics/Statistics'
 import Settings from '../screens/Settings/Settings';
+import {TimerStack} from './TimerNavigation'
 
 
 
@@ -13,7 +14,7 @@ export default function BottomNavigator() {
   const Tabs = createMaterialBottomTabNavigator();
     return (
             
-
+          
             <Tabs.Navigator barStyle={{ backgroundColor: 'white'}} initialRouteName={"Timer"} shifting={false}>
             
               <Tabs.Screen name="Calendar"
@@ -39,7 +40,7 @@ export default function BottomNavigator() {
               
               <Tabs.Screen 
                 name="Timer"
-                component={Timer}
+                component={TimerStack}
                 options={{    
                   tabBarLabel: 'Timer',
                   tabBarIcon: ({ color }) => (
@@ -72,6 +73,7 @@ export default function BottomNavigator() {
                 />
 
             </Tabs.Navigator>
+         
             
       );
 }
