@@ -1,14 +1,16 @@
 import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList} from 'react-native';
 
-import  React,{useState,useRef} from 'react';
+import  React,{useState,useRef,useEffect} from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
+import { StatusBar } from 'expo-status-bar';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 
 export default function Timer({navigation}){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
     const [labelModalStatus,setLabelModalStatus] = useState(false)
     const progressBarRef = useRef(null)
+
+    
 
     const [pickedTime,setPickedTime] = useState(false);
     const labelData=[
@@ -34,7 +36,7 @@ export default function Timer({navigation}){
 
   function LabelSectionFooter(){
     return(
-      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{navigation.navigate("addLabel")}}>
+      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{setLabelModalStatus(false);navigation.navigate("addLabel")}}>
         <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
         
         </View>
@@ -47,6 +49,7 @@ export default function Timer({navigation}){
     
     return(
         <View style={styles.rootView}>
+         
 
             <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:40,borderWidth:1,borderColor:'white'}}>
                 <TouchableOpacity style={styles.targetHours} onPress={()=>{setTimerModalStatus(true)}}>
@@ -101,7 +104,7 @@ export default function Timer({navigation}){
             </View>
 
             {/*Label section */}
-            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>setLabelModalStatus(true)}>
+            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>{setLabelModalStatus(true)}}>
               <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>Unlabeled</Text>
               
               
