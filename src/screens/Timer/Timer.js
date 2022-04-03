@@ -1,28 +1,34 @@
 import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList} from 'react-native';
-
+import {useDispatch,useSelector} from 'react-redux'
 import  React,{useState,useRef,useEffect} from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
+import {readLabels} from './../../redux/timer/timerActions'
 
 export default function Timer({navigation}){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
-    const [labelModalStatus,setLabelModalStatus] = useState(false)
+    const [labelModalStatus,setLabelModalStatus] = useState(false);
+
+    const [labelName,setLabelName] = useState("unlabelled")
     const progressBarRef = useRef(null)
-
-    
-
     const [pickedTime,setPickedTime] = useState(false);
-    const labelData=[
-      {color:"green",index:0,label:"Test1"},
-      {color:"red",index:1,label:"Test1"},
-      {color:"pink",index:2,label:"Test1"},
-      {color:"blue",index:3,label:"Test1"}
-  ]
+
+    const labelData = useSelector(state=>state.timer.readLabelsPayload);
+    
+    const dispatch = useDispatch();
+    
+    useEffect(()=>{
+      //setLabelModalStatus(true)
+      dispatch(readLabels())
+
+    },[navigation.isFocused()])
+
+ 
 
   function LabelComponent({color,index,label}){
     return(
-      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}}>
+      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{setLabelName(label);setLabelModalStatus(false)}}>
         <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
           <View style={{height:10,width:10,borderRadius:10,backgroundColor:color}}></View>
         </View>
@@ -105,7 +111,7 @@ export default function Timer({navigation}){
 
             {/*Label section */}
             <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>{setLabelModalStatus(true)}}>
-              <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>Unlabeled</Text>
+              <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>{labelName}</Text>
               
               
               <MaterialCommunityIcons name="label-outline" size={30} color="gray" style={{transform: [{rotateY: '180deg'}]}}/>
@@ -127,7 +133,7 @@ export default function Timer({navigation}){
                 <FlatList
                   ListFooterComponent={LabelSectionFooter}
                   data={labelData}
-                  CellRendererComponent={({item})=>(<LabelComponent color={item.color} label={item.label} index={item.index}/>)}
+                  CellRendererComponent={({item})=>(<LabelComponent color={item.labelColor} label={item.labelText} index={item.ID}/>)}
                   keyExtractor={item=>item.index}
                 />
 

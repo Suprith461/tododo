@@ -1,10 +1,41 @@
 import React,{useState,useEffect,useRef} from 'react';
-import {Text,View,TouchableOpacity,TextInput} from 'react-native';
-
+import {Text,View,TouchableOpacity,TextInput, Alert, ToastAndroid} from 'react-native';
+import {useDispatch,useSelector} from 'react-redux'
+import {addLabel, addLabelFailure,addLabelSuccess} from './../../redux/timer/timerActions'
 export default function AddLabelScreen({navigation}){
 
     const [label,setLabel] = useState("");
     const [labelColor,setLabelColor] = useState("black")
+    const dispatch  = useDispatch()
+    const labelAddStatus = useSelector(state=>state.timer.addedLabelStatus)
+    useEffect(()=>{
+        if(labelAddStatus=="done"){
+            dispatch(addLabelSuccess(null))
+            navigation.goBack();
+            console.log(labelAddStatus)
+        }
+       
+    },[labelAddStatus])
+
+    function checkIfLabelIsNull(){
+        if(label==null || label==""){
+            ToastAndroid.show('Please enter a label name !', ToastAndroid.SHORT);
+            return false
+        }else{
+            return true
+        }
+    }
+
+    navigation.setOptions({headerRight: () => (
+        <TouchableOpacity style={{marginHorizontal:20}} 
+            onPress={()=>{
+                if(checkIfLabelIsNull()){
+                    dispatch(addLabel({labelText:label,labelColor:labelColor}))
+                }
+                }}>
+            <Text style={{fontWeight:'bold',fontSize:16}}>SAVE</Text>
+        </TouchableOpacity>
+    )})
 
     return(
         <View style={{display:"flex",flex:1,backgroundColor:'white'}}>

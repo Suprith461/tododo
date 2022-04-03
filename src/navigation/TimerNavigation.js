@@ -15,11 +15,7 @@ export function TimerStack(){
             <TimerNavStack.Screen name="addLabel" component={AddLabelScreen} 
             options={{
                 title:"",
-                headerRight: () => (
-                    <TouchableOpacity style={{marginHorizontal:20}}>
-                        <Text style={{fontWeight:'bold',fontSize:16}}>SAVE</Text>
-                    </TouchableOpacity>
-                ),
+                
         }}/>
         </TimerNavStack.Navigator>
     )
