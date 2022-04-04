@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList} from 'react-native';
+import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList,Dimensions} from 'react-native';
 import {useDispatch,useSelector} from 'react-redux'
 import  React,{useState,useRef,useEffect} from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,6 +15,9 @@ export default function Timer({navigation}){
     const [pickedTime,setPickedTime] = useState(false);
 
     const labelData = useSelector(state=>state.timer.readLabelsPayload);
+
+    const [cuurentHeightOfLabelModal,setCurrentHeightOfLabelModal] = useState(20);
+    const height = Dimensions.get("screen").height
     
     const dispatch = useDispatch();
     
@@ -128,7 +131,13 @@ export default function Timer({navigation}){
             
               
             >
-              <View style={{display:"flex",width:"100%",backgroundColor:'white',position:'absolute',bottom:5,zIndex:10}}>
+              <TouchableOpacity style={{display:'flex',borderWidth:1,width:'100%',height:height-cuurentHeightOfLabelModal}} onPress={()=>{setLabelModalStatus(false)}}></TouchableOpacity>
+              <View
+                onLayout={(event)=>{
+                  setCurrentHeightOfLabelModal(event.nativeEvent.layout.height)
+
+                }} 
+                style={{display:"flex",width:"100%",backgroundColor:'white',position:'absolute',bottom:5,zIndex:10}}>
                 
                 <FlatList
                   ListFooterComponent={LabelSectionFooter}

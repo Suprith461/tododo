@@ -3,3 +3,8 @@
 
 Timer tab notes:
 1) Whenever a session ends ask options (save,don't save and discard)
+
+
+ISSUES TO BE SOLVED
+1)When we add a label we come back to previous screen , the modal of labels should open 
+2)Also should address the problem of closing the modal outside the component
