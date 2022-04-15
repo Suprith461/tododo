@@ -1,5 +1,6 @@
 import {ADD_LABEL_REQUEST,ADD_LABEL_SUCCESS,ADD_LABEL_FAILURE,
-    READ_LABELS_REQUEST,READ_LABELS_SUCCESS,READ_LABELS_FAILURE
+    READ_LABELS_REQUEST,READ_LABELS_SUCCESS,READ_LABELS_FAILURE,
+    STOP_WATCH_SESSION_REQUEST,STOP_WATCH_SESSION_SUCCESS,STOP_WATCH_SESSION_FAILURE
     } from './timerActionTypes'
     
     const initialState= {
@@ -9,7 +10,11 @@ import {ADD_LABEL_REQUEST,ADD_LABEL_SUCCESS,ADD_LABEL_FAILURE,
 
         readingLabels:false,
         readLabelsPayload:null,
-        readLabelsError:null
+        readLabelsError:null,
+
+        stopWatchSavingSession:false,
+        stopWatchSaveSessionPayload:null,
+        stopWatchSaveSessionError:null
     
     
     }
@@ -52,7 +57,26 @@ import {ADD_LABEL_REQUEST,ADD_LABEL_SUCCESS,ADD_LABEL_FAILURE,
                     readingLabels:false,
                     readLabelsError:action.payload
                 }
-          
+
+            case STOP_WATCH_SESSION_REQUEST:
+                return {
+                    ...state,
+                    stopWatchSavingSession:true
+                }
+            case STOP_WATCH_SESSION_SUCCESS:
+                return {
+                    ...state,
+                    stopWatchSavingSession:false,
+                    stopWatchSaveSessionPayload:action.payload
+                }
+            
+            case STOP_WATCH_SESSION_FAILURE:
+                return {
+                    ...state,
+                    stopWatchSavingSession:false,
+                    stopWatchSaveSessionError:action.payload
+
+                }
               
             default:return state
         }

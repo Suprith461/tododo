@@ -1,29 +1,29 @@
-import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList,Dimensions} from 'react-native';
+import { StyleSheet, Text, View ,TouchableOpacity, Modal,Easing,FlatList,Dimensions,TouchableHighlight,ToastAndroid} from 'react-native';
 import {useDispatch,useSelector} from 'react-redux'
 import  React,{useState,useRef,useEffect} from 'react';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons,MaterialIcons ,Ionicons} from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
-import {readLabels} from './../../redux/timer/timerActions'
+import {readLabels,stopWatchSaveSession} from './../../redux/timer/timerActions'
 import ScrollPicker from 'react-native-wheel-scrollview-picker';
 import Countdown from './../../components/Countdown'
 import StopWatch from './../../components/StopWatch'
 import CurrentTime from './../../components/CurrentTime'
+import { useStopwatch } from 'react-timer-hook';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 
 
 
-
-export default function Timer({navigation}){
+export default function StopWatchScreen({navigation}){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
     const [labelModalStatus,setLabelModalStatus] = useState(false);
     const [mode,setMode] = useState('stopwatch')
 
-    const [labelName,setLabelName] = useState("unlabelled")
+    const [labelName,setLabelName] = useState("unlabelled");
+    const [labelColor,setLabelColor] = useState("black")
     const progressBarRef = useRef(null)
     const [pickedTime,setPickedTime] = useState(false);
-    const clockRef = useRef();
-    const handleStart = () => clockRef.current.start();
-    const handlePause = () => clockRef.current.pause();
+   
 
     const labelData = useSelector(state=>state.timer.readLabelsPayload);
 
@@ -31,6 +31,16 @@ export default function Timer({navigation}){
     const height = Dimensions.get("screen").height
     
     const dispatch = useDispatch();
+    const {
+      seconds,
+      minutes,
+      hours,
+      days,
+      isRunning,
+      start,
+      pause,
+      reset,
+    } = useStopwatch({ autoStart: true });
     
     const distractionMessages = [
       "Don't get distracted!",
@@ -39,19 +49,51 @@ export default function Timer({navigation}){
       "Stay focused!"
   ];
     const [distractionCount,setDistractionCount] = useState(0);
-    const [distractionMessage,setDistractionMessage] = useState("Start working again!")
+    const [distractionMessage,setDistractionMessage] = useState("Start working again!");
+   
 
     useEffect(()=>{
       //setLabelModalStatus(true)
       dispatch(readLabels())
+      activateKeepAwake()
 
     },[navigation.isFocused()])
 
- 
+    const [abortModal,setAbortModal] = useState(false);
+    function handleAbort(){
+    
+      setAbortModal(true)
+
+    }
+
+    function handleDiscard(){
+      setAbortModal(false)
+      deactivateKeepAwake()
+      reset()
+
+      
+    }
+
+    function handleSave(){
+      dispatch(stopWatchSaveSession({labelColor:labelColor,labelText:labelName,hours:hours,minutes:minutes,distractions:distractionCount}))
+      ToastAndroid.show('Session Completed.', ToastAndroid.SHORT);
+      setAbortModal(false)
+      deactivateKeepAwake()
+    }
+
+    function handlePause(){
+      if(isRunning){
+        pause()
+      }else{
+        start()
+      }
+    }
+    const [musicModalShow,setMusicModalShow] = useState(false);
+
 
   function LabelComponent({color,index,label}){
     return(
-      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{setLabelName(label);setLabelModalStatus(false)}}>
+      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{setLabelName(label);setLabelModalStatus(false);setLabelColor(color)}}>
         <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
           <View style={{height:10,width:10,borderRadius:10,backgroundColor:color}}></View>
         </View>
@@ -62,6 +104,7 @@ export default function Timer({navigation}){
     )
 
   }
+
 
   function LabelSectionFooter(){
     return(
@@ -74,6 +117,42 @@ export default function Timer({navigation}){
         </View>
       </TouchableOpacity>
     )
+  }
+  const audioData = [
+    {id:0,audioName:"None",location:null},
+    {id:1,audioName:"Tick-Tick",location:null},
+    {id:2,audioName:"Waterfall",location:null},
+    {id:3,audioName:"Birds in rain",location:null},
+    {id:4,audioName:"Crickets",location:null},
+    {id:5,audioName:"Cafe",location:null},
+    {id:6,audioName:"Wind",location:null},
+    {id:7,audioName:"Ocean",location:null},
+
+  ]
+
+  const [audioName,setAudioName] = useState("None");
+  const [finalAudioName,setFinalAudioName] = useState("None")
+  function handleAudioSelection(name,location){
+    console.log("Handle audio selection",name)
+    setAudioName(name);
+  }
+  function AudioSelectionElement({name,location}){
+    const checked = (name==audioName)?true:false;
+    return(
+      <TouchableOpacity onPress={()=>{handleAudioSelection(name)}} style={{width:'95%',borderBottomColor:'#00000050',borderBottomWidth:1,height:50,display:'flex',flexDirection:'row',alignItems:'center',paddingHorizontal:20}}>
+        <Text style={{color:checked?'#299ec4':'black',fontWeight:'700',fontSize:15,display:'flex',flex:0.9}}>{name}</Text>
+        {checked && <Ionicons name="checkmark-sharp" size={28} color="#299ec4" />}
+      </TouchableOpacity>
+    )
+  }
+  function HeaderAudioSelection(){
+    return(
+        <View style={{width:"95%",height:60,marginHorizontal:20,marginVertical:10,display:'flex',flexDirection:'row'}}>
+          <TouchableOpacity onPress={()=>{setMusicModalShow(false)}} style={{diplay:'flex',flex:0.1}}><Ionicons name="arrow-back" size={24} color="black" /></TouchableOpacity>
+          <Text style={{display:'flex',flex:0.7,color:'black',fontSize:18,fontWeight:'600',marginHorizontal:10}}>White Noise</Text>
+          <TouchableOpacity onPress={()=>{setFinalAudioName(audioName);setMusicModalShow(false)}} style={{display:'flex',flex:0.2}}><Text style={{color:'black',fontSize:18,fontWeight:'600',marginHorizontal:10}}>SET</Text></TouchableOpacity>
+        </View>
+    );
   }
     
     return(
@@ -96,7 +175,16 @@ export default function Timer({navigation}){
                   {mode=="timer"&&<TouchableOpacity><Text style={{color:"#FFFFFF90",fontSize:16}}>Comment/Note...</Text></TouchableOpacity>}
                   <Text style={{color:"#FFFFFF",fontSize:16}}>{distractionMessage}</Text>
                   
-                  {mode=='timer'?<Countdown/>:<StopWatch/>}   
+                  <StopWatch 
+                    seconds={seconds}
+                    minutes={minutes}
+                    hours={hours}
+                    days={days}
+                    isRunning={isRunning}
+                    start={start}
+                    pause={pause}
+                    reset={reset}/>
+       
                   
             </View>
             
@@ -136,9 +224,10 @@ export default function Timer({navigation}){
             </View>
 
             {/*All the buttons like resume ,pause,stop */}
-            <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',margin:"5%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
-                  <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handleStart}><Text style={{fontSize:13,color:'white'}}>Timer</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={()=>{setMode('stopwatch');Fullscreen.enableFullScreen();}} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Stopwatch</Text></TouchableOpacity>
+            <View style={{width:"100%",height:100,borderWidth:1,borderColor:'white',marginVertical:"2%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+                  <TouchableOpacity onPress={()=>{setMusicModalShow(true)}} style={{position:'absolute',left:10}}><MaterialIcons name="music-note" size={25} color="#FFFFFF50" /></TouchableOpacity>
+                  <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handlePause} ><Text style={{fontSize:13,color:'white'}}>{isRunning && "Pause"}{!isRunning && "Resume"}</Text></TouchableOpacity>
+                  <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handleAbort}><Text style={{fontSize:13,color:'white'}}>Abort</Text></TouchableOpacity>
             </View>
 
             {/*Label section */}
@@ -148,9 +237,58 @@ export default function Timer({navigation}){
               
               <MaterialCommunityIcons name="label-outline" size={30} color="gray" style={{transform: [{rotateY: '180deg'}]}}/>
             </TouchableOpacity>
-              
 
-           
+            {/*Modal for selecting music */}
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={musicModalShow}
+              style={{display:'flex',flex:1,alignItems:'center',justifyContent:"center"}}
+              onRequestClose={()=>setMusicModalShow(false)}
+                
+              
+            >
+              <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
+                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2,width:'100%'}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <View style={{display:"flex",flex:0.6,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5}}>
+                
+                  <FlatList
+                    data={audioData}
+                    CellRendererComponent={({item})=>(<AudioSelectionElement name={item.audioName} location={item.location}/>)}
+                    keyExtractor={item=>item.id}
+                    extraData={audioName}
+                    ListHeaderComponent={HeaderAudioSelection}
+                   />
+                  
+                </View>
+                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+              </View>
+            </Modal>
+              
+            {/*Modal displayed when abort is pressed */}
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={abortModal}
+              style={{display:'flex',flex:1,alignItems:'center',justifyContent:"center"}}
+              onRequestClose={()=>setAbortModal(false)}
+                
+              
+            >
+              <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
+                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.32,width:'100%'}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <View style={{display:"flex",flex:0.2,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5}}>
+                    <TouchableHighlight underlayColor="#60aadb40" onPress={handleSave} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'green',fontWeight:'700',fontSize:18}}>Completed, Save the Session</Text></TouchableHighlight>
+                    <TouchableHighlight underlayColor="#60aadb40" onPress={handleDiscard} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'red',fontWeight:'700',fontSize:18}}>Discard</Text></TouchableHighlight>
+                    <TouchableHighlight underlayColor="#60aadb40" onPress={()=>{setAbortModal(false)}} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'yellow',fontWeight:'700',fontSize:18}}>Continue working</Text></TouchableHighlight>
+                  
+                
+                </View>
+                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.48}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+              </View>
+            </Modal>
+
+            {/*Modal for labels */}
             <Modal
               animationType="slide"
               transparent={true}

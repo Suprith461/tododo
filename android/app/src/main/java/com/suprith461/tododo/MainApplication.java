@@ -7,6 +7,9 @@ import androidx.annotation.NonNull;
 
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
+import com.reactnativefullscreen.FullscreenPackage;
+import com.reactnativefulscreenchz.ReactNativeFullscreenPackage;
+import com.rn.full.screen.FullScreenModule;
 import com.horcrux.svg.SvgPackage;
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.ReactNativeHost;
@@ -37,7 +40,7 @@ public class MainApplication extends Application implements ReactApplication {
       @SuppressWarnings("UnnecessaryLocalVariable")
       List<ReactPackage> packages = new PackageList(this).getPackages();
       // Packages that cannot be autolinked yet can be added manually here, for example:
-      //packages.add(new SvgPackage());
+     
       return packages;
     }
 
