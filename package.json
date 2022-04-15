@@ -47,7 +47,8 @@
     "redux-logger": "^3.0.6",
     "redux-thunk": "^2.4.1",
     "sharp-cli": "^1.15.0",
-    "expo-keep-awake": "~10.0.1"
+    "expo-keep-awake": "~10.0.1",
+    "expo-av": "~10.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"

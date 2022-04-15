@@ -11,6 +11,7 @@ import StopWatch from './../../components/StopWatch'
 import CurrentTime from './../../components/CurrentTime'
 import { useStopwatch } from 'react-timer-hook';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
+import { Audio } from 'expo-av';
 
 
 
@@ -89,7 +90,31 @@ export default function StopWatchScreen({navigation}){
       }
     }
     const [musicModalShow,setMusicModalShow] = useState(false);
+    const [sound,setSound] = useState();
 
+    useEffect(()=>{
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DUCK_OTHERS,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: false,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
+        playThroughEarpieceAndroid: false
+     });return async ()=>{await sound.unloadasync()}
+    },[])
+    async function playSound() {
+      
+      console.log('Loading Sound');
+      const { sound } = await Audio.Sound.createAsync(
+         require('../../../assets/tick-tick.wav'),{isLooping:true}
+      );
+      setSound(sound);
+  
+      console.log('Playing Sound');
+      await sound.playAsync()
+    
+     }
 
   function LabelComponent({color,index,label}){
     return(
@@ -225,7 +250,7 @@ export default function StopWatchScreen({navigation}){
 
             {/*All the buttons like resume ,pause,stop */}
             <View style={{width:"100%",height:100,borderWidth:1,borderColor:'white',marginVertical:"2%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
-                  <TouchableOpacity onPress={()=>{setMusicModalShow(true)}} style={{position:'absolute',left:10}}><MaterialIcons name="music-note" size={25} color="#FFFFFF50" /></TouchableOpacity>
+                  <TouchableOpacity onPress={()=>{setMusicModalShow(true);}} style={{position:'absolute',left:10}}><MaterialIcons name="music-note" size={25} color="#FFFFFF50" /></TouchableOpacity>
                   <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handlePause} ><Text style={{fontSize:13,color:'white'}}>{isRunning && "Pause"}{!isRunning && "Resume"}</Text></TouchableOpacity>
                   <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handleAbort}><Text style={{fontSize:13,color:'white'}}>Abort</Text></TouchableOpacity>
             </View>
@@ -249,7 +274,7 @@ export default function StopWatchScreen({navigation}){
               
             >
               <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
-                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2,width:'100%'}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2,width:'100%'}} onPress={()=>{setMusicModalShow(false)}}></TouchableOpacity>
                 <View style={{display:"flex",flex:0.6,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5}}>
                 
                   <FlatList
@@ -261,7 +286,7 @@ export default function StopWatchScreen({navigation}){
                    />
                   
                 </View>
-                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2}} onPress={()=>{setMusicModalShow(false)}}></TouchableOpacity>
               </View>
             </Modal>
               
