@@ -16,19 +16,27 @@ import { Audio } from 'expo-av';
 
 
 export default function StopWatchScreen({navigation}){
+    
     const [timerModalStatus,setTimerModalStatus]= useState(false);
     const [labelModalStatus,setLabelModalStatus] = useState(false);
     const [mode,setMode] = useState('stopwatch')
-
     const [labelName,setLabelName] = useState("unlabelled");
     const [labelColor,setLabelColor] = useState("black")
-    const progressBarRef = useRef(null)
     const [pickedTime,setPickedTime] = useState(false);
-   
+    const [cuurentHeightOfLabelModal,setCurrentHeightOfLabelModal] = useState(20);
+    const [distractionCount,setDistractionCount] = useState(0);
+    const [distractionMessage,setDistractionMessage] = useState("Start working again!");
+    const [abortModal,setAbortModal] = useState(false);
+    const [musicModalShow,setMusicModalShow] = useState(false);
+    const [sound,setSound] = useState(null);
+    const [tempSound,setTempSound] = useState(null);
+    const [audioName,setAudioName] = useState("None");
+    const [finalAudioName,setFinalAudioName] = useState(null)
+  
+
+    const progressBarRef = useRef(null)
 
     const labelData = useSelector(state=>state.timer.readLabelsPayload);
-
-    const [cuurentHeightOfLabelModal,setCurrentHeightOfLabelModal] = useState(20);
     const height = Dimensions.get("screen").height
     
     const dispatch = useDispatch();
@@ -49,10 +57,19 @@ export default function StopWatchScreen({navigation}){
       "Stop dreaming!",
       "Stay focused!"
   ];
-    const [distractionCount,setDistractionCount] = useState(0);
-    const [distractionMessage,setDistractionMessage] = useState("Start working again!");
-   
 
+  
+  const audioData = [
+    {id:0,audioName:"None",location:null},
+    {id:1,audioName:"Tick-Tick",location:'../../../assets/tick-tick.wav'},
+    {id:4,audioName:"Crickets",location:'../../../assets/cricket.wav'},
+    {id:5,audioName:"Cafe",location:'../../../assets/cafe.wav'},
+    {id:6,audioName:"Wind",location:'../../../assets/trees.wav'},
+    {id:7,audioName:"Ocean",location:'../../../assets/ocean-waves.wav'},
+
+  ]
+   
+   
     useEffect(()=>{
       //setLabelModalStatus(true)
       dispatch(readLabels())
@@ -60,39 +77,8 @@ export default function StopWatchScreen({navigation}){
 
     },[navigation.isFocused()])
 
-    const [abortModal,setAbortModal] = useState(false);
-    function handleAbort(){
-    
-      setAbortModal(true)
-
-    }
-
-    function handleDiscard(){
-      setAbortModal(false)
-      deactivateKeepAwake()
-      reset()
-
-      
-    }
-
-    function handleSave(){
-      dispatch(stopWatchSaveSession({labelColor:labelColor,labelText:labelName,hours:hours,minutes:minutes,distractions:distractionCount}))
-      ToastAndroid.show('Session Completed.', ToastAndroid.SHORT);
-      setAbortModal(false)
-      deactivateKeepAwake()
-    }
-
-    function handlePause(){
-      if(isRunning){
-        pause()
-      }else{
-        start()
-      }
-    }
-    const [musicModalShow,setMusicModalShow] = useState(false);
-    const [sound,setSound] = useState();
-
     useEffect(()=>{
+      
       Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         staysActiveInBackground: true,
@@ -101,19 +87,114 @@ export default function StopWatchScreen({navigation}){
         shouldDuckAndroid: false,
         interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
         playThroughEarpieceAndroid: false
-     });return async ()=>{await sound.unloadasync()}
-    },[])
-    async function playSound() {
+     })
+     
+     ;return async ()=>{
       
-      console.log('Loading Sound');
-      const { sound } = await Audio.Sound.createAsync(
-         require('../../../assets/tick-tick.wav'),{isLooping:true}
-      );
-      setSound(sound);
-  
-      console.log('Playing Sound');
-      await sound.playAsync()
+      if(sound!=null){
+        await sound.unloadasync()}
+      } 
+      
+    },[navigation.isFocused()])
+
+     //To start playing the sound automatically whenever finalaudio name changes 
+    useEffect(async ()=>{
+        console.log("finalAudio name useffect hook tyriggered")
+        if(finalAudioName!=null){
+              playSound(finalAudioName)
+          }
+      
+    },[finalAudioName])
+
+    useEffect(async ()=>{
+      if(tempSound!=null){
+        await tempSound.playAsync().then(async ()=>{
+          console.log('Playing Sound');
+        })
+      }
+    },[tempSound])
+
+   
+    function handleAbort(){
+      setAbortModal(true)
+    }
+
+    async function handleDiscard(){
+      setAbortModal(false)
+      deactivateKeepAwake()
+      reset()
+      if(finalAudioName!=null && sound!=null){
+        await sound.unloadAsync();
+      }
+    }
+
+    async function handleSave(){
+      dispatch(stopWatchSaveSession({labelColor:labelColor,labelText:labelName,hours:hours,minutes:minutes,distractions:distractionCount}))
+      ToastAndroid.show('Session Completed.', ToastAndroid.SHORT);
+      setAbortModal(false)
+      deactivateKeepAwake()
+      if(finalAudioName!=null && sound!=null){
+        await sound.unloadAsync();
+      }
+    }
+
+    async function handlePause(){
+      if(isRunning){
+        pause()
+        if(finalAudioName!=null && sound!=null){
+          await sound.pauseAsync()
+        }
+      }else{
+        start()
+        if(finalAudioName!=null && sound!=null){
+          
+          await sound.playAsync();
+        }
+        
+      }
+    }
+   
+
+   
     
+
+
+    function returnPath(path){
+      if(path=='../../../assets/tick-tick.wav'){
+        return require('../../../assets/tick-tick.wav')
+      }else if( path=='../../../assets/cricket.wav'){
+        return require('../../../assets/cricket.wav')
+      }else if(path=='../../../assets/cafe.wav'){
+        return require('../../../assets/cafe.wav')
+      }else if(path=='../../../assets/trees.wav'){
+        return require('../../../assets/trees.wav')
+      }else if(path=='../../../assets/ocean-waves.wav'){
+        return require('../../../assets/ocean-waves.wav')
+      }
+    }
+
+    async function playSound(path) {  
+      console.log("path",path)
+      if(path!=null){
+        console.log('Loading Sound');
+        const { sound } = await Audio.Sound.createAsync(
+          returnPath(path),{isLooping:true}
+        );
+        setSound(sound);
+        console.log('Playing Sound');
+        await sound.playAsync()
+      }
+     }
+
+     async function playSoundOnce(path) { 
+       if(path!=null){
+        console.log('Loading Sound once');
+        const {sound } = await Audio.Sound.createAsync(
+          returnPath(path)
+        );
+        setTempSound(sound); 
+       } 
+
      }
 
   function LabelComponent({color,index,label}){
@@ -143,28 +224,18 @@ export default function StopWatchScreen({navigation}){
       </TouchableOpacity>
     )
   }
-  const audioData = [
-    {id:0,audioName:"None",location:null},
-    {id:1,audioName:"Tick-Tick",location:null},
-    {id:2,audioName:"Waterfall",location:null},
-    {id:3,audioName:"Birds in rain",location:null},
-    {id:4,audioName:"Crickets",location:null},
-    {id:5,audioName:"Cafe",location:null},
-    {id:6,audioName:"Wind",location:null},
-    {id:7,audioName:"Ocean",location:null},
+ 
 
-  ]
+  
+  function handleAudioSelection(location){
 
-  const [audioName,setAudioName] = useState("None");
-  const [finalAudioName,setFinalAudioName] = useState("None")
-  function handleAudioSelection(name,location){
-    console.log("Handle audio selection",name)
-    setAudioName(name);
+    setAudioName(location);
   }
+  
   function AudioSelectionElement({name,location}){
-    const checked = (name==audioName)?true:false;
+    const checked = (location==audioName)?true:false;
     return(
-      <TouchableOpacity onPress={()=>{handleAudioSelection(name)}} style={{width:'95%',borderBottomColor:'#00000050',borderBottomWidth:1,height:50,display:'flex',flexDirection:'row',alignItems:'center',paddingHorizontal:20}}>
+      <TouchableOpacity onPress={()=>{handleAudioSelection(location);playSoundOnce(location)}} style={{width:'95%',borderBottomColor:'#00000050',borderBottomWidth:1,height:50,display:'flex',flexDirection:'row',alignItems:'center',paddingHorizontal:20}}>
         <Text style={{color:checked?'#299ec4':'black',fontWeight:'700',fontSize:15,display:'flex',flex:0.9}}>{name}</Text>
         {checked && <Ionicons name="checkmark-sharp" size={28} color="#299ec4" />}
       </TouchableOpacity>
@@ -175,11 +246,13 @@ export default function StopWatchScreen({navigation}){
         <View style={{width:"95%",height:60,marginHorizontal:20,marginVertical:10,display:'flex',flexDirection:'row'}}>
           <TouchableOpacity onPress={()=>{setMusicModalShow(false)}} style={{diplay:'flex',flex:0.1}}><Ionicons name="arrow-back" size={24} color="black" /></TouchableOpacity>
           <Text style={{display:'flex',flex:0.7,color:'black',fontSize:18,fontWeight:'600',marginHorizontal:10}}>White Noise</Text>
-          <TouchableOpacity onPress={()=>{setFinalAudioName(audioName);setMusicModalShow(false)}} style={{display:'flex',flex:0.2}}><Text style={{color:'black',fontSize:18,fontWeight:'600',marginHorizontal:10}}>SET</Text></TouchableOpacity>
+          <TouchableOpacity onPress={()=>{console.log("SET pressed",audioName);setFinalAudioName(audioName);setMusicModalShow(false)}} style={{display:'flex',flex:0.2}}><Text style={{color:'black',fontSize:18,fontWeight:'600',marginHorizontal:10}}>SET</Text></TouchableOpacity>
         </View>
     );
   }
-    
+  
+
+
     return(
         <View style={styles.rootView}>
          
