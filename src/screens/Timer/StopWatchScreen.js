@@ -32,8 +32,8 @@ export default function StopWatchScreen({navigation}){
     const [tempSound,setTempSound] = useState(null);
     const [audioName,setAudioName] = useState("None");
     const [finalAudioName,setFinalAudioName] = useState(null)
-  
-
+    const [targetHours,setTargetHours]=useState(0);
+    const [activeTargetHour,setActiveTargetHour] = useState(0);
     const progressBarRef = useRef(null)
 
     const labelData = useSelector(state=>state.timer.readLabelsPayload);
@@ -60,7 +60,7 @@ export default function StopWatchScreen({navigation}){
 
   
   const audioData = [
-    {id:0,audioName:"None",location:null},
+    {id:0,audioName:"None",location:"None"},
     {id:1,audioName:"Tick-Tick",location:'../../../assets/tick-tick.wav'},
     {id:4,audioName:"Crickets",location:'../../../assets/cricket.wav'},
     {id:5,audioName:"Cafe",location:'../../../assets/cafe.wav'},
@@ -68,6 +68,16 @@ export default function StopWatchScreen({navigation}){
     {id:7,audioName:"Ocean",location:'../../../assets/ocean-waves.wav'},
 
   ]
+
+  function returnTargetTimeData(){
+    const res=[]
+    let temp=0
+    while(temp!=24){
+      res.push(temp)
+      temp=temp+0.5
+    }
+    return res
+  }
    
    
     useEffect(()=>{
@@ -100,7 +110,7 @@ export default function StopWatchScreen({navigation}){
      //To start playing the sound automatically whenever finalaudio name changes 
     useEffect(async ()=>{
         console.log("finalAudio name useffect hook tyriggered")
-        if(finalAudioName!=null){
+        if(finalAudioName!=null && finalAudioName!="None"){
               playSound(finalAudioName)
           }
       
@@ -117,13 +127,15 @@ export default function StopWatchScreen({navigation}){
    
     function handleAbort(){
       setAbortModal(true)
+      
     }
 
     async function handleDiscard(){
       setAbortModal(false)
       deactivateKeepAwake()
       reset()
-      if(finalAudioName!=null && sound!=null){
+      setDistractionCount(0)
+      if(finalAudioName!=null && sound!=null && finalAudioName!="None"){
         await sound.unloadAsync();
       }
     }
@@ -132,8 +144,10 @@ export default function StopWatchScreen({navigation}){
       dispatch(stopWatchSaveSession({labelColor:labelColor,labelText:labelName,hours:hours,minutes:minutes,distractions:distractionCount}))
       ToastAndroid.show('Session Completed.', ToastAndroid.SHORT);
       setAbortModal(false)
+      setDistractionCount(0)
       deactivateKeepAwake()
-      if(finalAudioName!=null && sound!=null){
+      reset()
+      if(finalAudioName!=null && sound!=null && finalAudioName!="None"){
         await sound.unloadAsync();
       }
     }
@@ -141,12 +155,12 @@ export default function StopWatchScreen({navigation}){
     async function handlePause(){
       if(isRunning){
         pause()
-        if(finalAudioName!=null && sound!=null){
+        if(finalAudioName!=null && sound!=null && finalAudioName!="None"){
           await sound.pauseAsync()
         }
       }else{
         start()
-        if(finalAudioName!=null && sound!=null){
+        if(finalAudioName!=null && sound!=null && finalAudioName!="None"){
           
           await sound.playAsync();
         }
@@ -175,7 +189,7 @@ export default function StopWatchScreen({navigation}){
 
     async function playSound(path) {  
       console.log("path",path)
-      if(path!=null){
+      if(path!=null && path!="None"){
         console.log('Loading Sound');
         const { sound } = await Audio.Sound.createAsync(
           returnPath(path),{isLooping:true}
@@ -187,7 +201,7 @@ export default function StopWatchScreen({navigation}){
      }
 
      async function playSoundOnce(path) { 
-       if(path!=null){
+       if(path!=null && path!="None"){
         console.log('Loading Sound once');
         const {sound } = await Audio.Sound.createAsync(
           returnPath(path)
@@ -224,6 +238,14 @@ export default function StopWatchScreen({navigation}){
       </TouchableOpacity>
     )
   }
+
+  function SelectWorkTargetComp({data}){
+    return(
+      <View style={{height:50,display:'flex',width:100,alignItems:'center',justifyContent:'center'}}>
+        <Text style={{display:'flex',flex:1,fontSize:18,color:'gray'}}>{data}</Text>
+      </View>
+    )
+  }
  
 
   
@@ -233,6 +255,7 @@ export default function StopWatchScreen({navigation}){
   }
   
   function AudioSelectionElement({name,location}){
+    console.log("location and name",location,name)
     const checked = (location==audioName)?true:false;
     return(
       <TouchableOpacity onPress={()=>{handleAudioSelection(location);playSoundOnce(location)}} style={{width:'95%',borderBottomColor:'#00000050',borderBottomWidth:1,height:50,display:'flex',flexDirection:'row',alignItems:'center',paddingHorizontal:20}}>
@@ -252,24 +275,32 @@ export default function StopWatchScreen({navigation}){
   }
   
 
+  function returnElapsedTime(){
+    let res = hours
+    if(minutes>30){
+      res+=0.5
+    }
+    return res
+  }
+
 
     return(
         <View style={styles.rootView}>
          
 
-            <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:40,borderWidth:1,borderColor:'white'}}>
+            <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:40,borderColor:'white'}}>
                 <TouchableOpacity style={styles.targetHours} onPress={()=>{setTimerModalStatus(true)}}>
-                    <Text style={{color:'white',fontSize:20,fontWeight:'700',marginHorizontal:10}}>0/0.5</Text>
+                    <Text style={{color:'white',fontSize:20,fontWeight:'700',marginHorizontal:10}}>{returnElapsedTime()}{returnElapsedTime()<targetHours && targetHours>0 && "/"+targetHours}</Text>
                 </TouchableOpacity>
             </View>
 
             {/*Should show current time here */}
-            <View style={{width:"100%",height:25,borderWidth:1,borderColor:'white'}}>
+            <View style={{width:"100%",height:25,}}>
               <CurrentTime/>
             </View>
 
             {/*All the text part comes here */}
-            <View style={{height:180,width:"90%",borderWidth:1,borderColor:'white',marginHorizontal:"5%",display:'flex',alignItems:'center',justifyContent:"flex-end"}}>
+            <View style={{height:180,width:"90%",marginHorizontal:"5%",display:'flex',alignItems:'center',justifyContent:"flex-end"}}>
                   {mode=="timer"&&<TouchableOpacity><Text style={{color:"#FFFFFF90",fontSize:16}}>Comment/Note...</Text></TouchableOpacity>}
                   <Text style={{color:"#FFFFFF",fontSize:16}}>{distractionMessage}</Text>
                   
@@ -322,14 +353,14 @@ export default function StopWatchScreen({navigation}){
             </View>
 
             {/*All the buttons like resume ,pause,stop */}
-            <View style={{width:"100%",height:100,borderWidth:1,borderColor:'white',marginVertical:"2%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+            <View style={{width:"100%",height:100,marginVertical:"2%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
                   <TouchableOpacity onPress={()=>{setMusicModalShow(true);}} style={{position:'absolute',left:10}}><MaterialIcons name="music-note" size={25} color="#FFFFFF50" /></TouchableOpacity>
                   <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handlePause} ><Text style={{fontSize:13,color:'white'}}>{isRunning && "Pause"}{!isRunning && "Resume"}</Text></TouchableOpacity>
                   <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} onPress={handleAbort}><Text style={{fontSize:13,color:'white'}}>Abort</Text></TouchableOpacity>
             </View>
 
             {/*Label section */}
-            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>{setLabelModalStatus(true)}}>
+            <TouchableOpacity style={{width:"100%",height:30,display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>{setLabelModalStatus(true)}}>
               <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>{labelName}</Text>
               
               
@@ -347,7 +378,7 @@ export default function StopWatchScreen({navigation}){
               
             >
               <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
-                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2,width:'100%'}} onPress={()=>{setMusicModalShow(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',flex:0.2,width:'100%'}} onPress={()=>{setMusicModalShow(false)}}></TouchableOpacity>
                 <View style={{display:"flex",flex:0.6,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5}}>
                 
                   <FlatList
@@ -359,7 +390,7 @@ export default function StopWatchScreen({navigation}){
                    />
                   
                 </View>
-                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.2}} onPress={()=>{setMusicModalShow(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',flex:0.2}} onPress={()=>{setMusicModalShow(false)}}></TouchableOpacity>
               </View>
             </Modal>
               
@@ -374,7 +405,7 @@ export default function StopWatchScreen({navigation}){
               
             >
               <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
-                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.32,width:'100%'}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',flex:0.32,width:'100%'}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
                 <View style={{display:"flex",flex:0.2,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5}}>
                     <TouchableHighlight underlayColor="#60aadb40" onPress={handleSave} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'green',fontWeight:'700',fontSize:18}}>Completed, Save the Session</Text></TouchableHighlight>
                     <TouchableHighlight underlayColor="#60aadb40" onPress={handleDiscard} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'red',fontWeight:'700',fontSize:18}}>Discard</Text></TouchableHighlight>
@@ -382,7 +413,7 @@ export default function StopWatchScreen({navigation}){
                   
                 
                 </View>
-                <TouchableOpacity style={{display:'flex',borderWidth:1,flex:0.48}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',flex:0.48}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
               </View>
             </Modal>
 
@@ -396,7 +427,7 @@ export default function StopWatchScreen({navigation}){
             
               
             >
-              <TouchableOpacity style={{display:'flex',borderWidth:1,width:'100%',height:height-cuurentHeightOfLabelModal}} onPress={()=>{setLabelModalStatus(false)}}></TouchableOpacity>
+              <TouchableOpacity style={{display:'flex',width:'100%',height:height-cuurentHeightOfLabelModal}} onPress={()=>{setLabelModalStatus(false)}}></TouchableOpacity>
               <View
                 onLayout={(event)=>{
                   setCurrentHeightOfLabelModal(event.nativeEvent.layout.height)
@@ -432,31 +463,33 @@ export default function StopWatchScreen({navigation}){
                 <View style={styles.modalView}>
 
                     <View style={{borderBottomWidth:0.5}}>
-                        <Text style={styles.modalText}>Today's work target</Text>
+                        <Text style={styles.modalText}>Today's work target(hours)</Text>
                     </View>
 
-                    <View>
+                    <View style={{height:300}}>
                         <ScrollPicker
-                          dataSource={['1', '2', '3', '4', '5', '6']}
-                          selectedIndex={1}
+                          dataSource={returnTargetTimeData()}
+                          selectedIndex={0}
+                          activeItemTextStyle={{color:'black',fontSize:20,fontWeight:'500'}}
                           renderItem={(data, index) => {
-                            //
-                            <View style={{borderWidth:1,height:10,display:'flex',width:'90%'}}><Text style={{display:'flex',flex:1}}>data</Text></View>
+                            
+                            return <SelectWorkTargetComp data={data}/>
                           }}
                           onValueChange={(data, selectedIndex) => {
-                            //
+                            setActiveTargetHour(data)
                           }}
-                          wrapperHeight={180}
-                          wrapperWidth={150}
-                          wrapperColor='#FFFFFF'
-                          itemHeight={60}
-                          highlightColor='#d8d8d8'
+                          wrapperHeight={300}
+                          wrapperColor={"white"}
+                          itemHeight={100}
+                          highlightColor='black'
                           highlightBorderWidth={2}
+                          
+                         
                         />
                     </View>
-                    <View style={{display:'flex',flexDirection:'row',alignItems:'flex-end', justifyContent:'flex-end',borderWidth:1}}>
-                        <TouchableOpacity><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
-                        <TouchableOpacity><Text style={{color:'#34ebb1',margin:20,marginLeft:30}}>SET</Text></TouchableOpacity>
+                    <View style={{display:'flex',flexDirection:'row',alignItems:'flex-end', justifyContent:'flex-end'}}>
+                        <TouchableOpacity onPress={()=>setTimerModalStatus(!timerModalStatus)}><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={()=>{setTargetHours(activeTargetHour);setTimerModalStatus(false)}}><Text style={{color:'#34ebb1',margin:20,marginLeft:30}}>SET</Text></TouchableOpacity>
                         
                     </View>
                 </View>
@@ -504,7 +537,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 4,
         elevation: 5,
-        width:"90%"
+        width:"90%",
+        height:450
       },
       button: {
         borderRadius: 20,
@@ -526,7 +560,7 @@ const styles = StyleSheet.create({
         marginBottom: 15,
         textAlign: 'center',
         fontSize:18,
-        marginHorizontal:70
+        marginHorizontal:50
 
         
       },

@@ -11,8 +11,9 @@ export function TimerStack(){
    
     return(
         <TimerNavStack.Navigator >
+             <TimerNavStack.Screen name="timerMain" component={Timer} options={{headerShown:false}}/>
             <TimerNavStack.Screen name="timerMain2" component={StopWatchScreen} options={{headerShown:false}}/>
-            <TimerNavStack.Screen name="timerMain" component={Timer} options={{headerShown:false}}/>
+           
             <TimerNavStack.Screen name="addLabel" component={AddLabelScreen} 
             options={{
                 title:"",

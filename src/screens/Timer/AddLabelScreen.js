@@ -8,13 +8,13 @@ export default function AddLabelScreen({navigation}){
     const [labelColor,setLabelColor] = useState("black")
     const dispatch  = useDispatch()
     const labelAddStatus = useSelector(state=>state.timer.addedLabelStatus)
+    
     useEffect(()=>{
         if(labelAddStatus=="done"){
             dispatch(addLabelSuccess(null))
             navigation.goBack();
             console.log(labelAddStatus)
-        }
-       
+        } 
     },[labelAddStatus])
 
     function checkIfLabelIsNull(){

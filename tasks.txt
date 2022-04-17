@@ -8,3 +8,14 @@ Timer tab notes:
 ISSUES TO BE SOLVED
 1)When we add a label we come back to previous screen , the modal of labels should open 
 2)Also should address the problem of closing the modal outside the component
+
+Date 14/04/22
+
+Stopwatch comments
+1)Start working again!
+2)Don't get distracted!
+3)Focus on your work!
+4)Stop dreaming!
+5)Stay focused!
+6)Don't get distracted! >> continuous loop
+
