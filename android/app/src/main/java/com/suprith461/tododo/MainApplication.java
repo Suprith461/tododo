@@ -7,9 +7,7 @@ import androidx.annotation.NonNull;
 
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
-import com.reactnativefullscreen.FullscreenPackage;
-import com.reactnativefulscreenchz.ReactNativeFullscreenPackage;
-import com.rn.full.screen.FullScreenModule;
+
 import com.horcrux.svg.SvgPackage;
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.ReactNativeHost;

@@ -333,7 +333,7 @@ export default function StopWatchScreen({navigation}){
                   {
                     ()=>(
                        distractionCount==0?
-                       <TouchableOpacity onPress={()=>{setDistractionCount(distractionCount+1);setDistractionMessage(distractionMessages[(distractionCount+1)%4])}} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1}}>
+                       <TouchableOpacity onPress={()=>{setDistractionCount(distractionCount+1);setDistractionMessage(distractionMessages[(distractionCount+1)%4])}} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
                         <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
                           Hit Me
                         </Text>
@@ -341,7 +341,7 @@ export default function StopWatchScreen({navigation}){
                           When you are distracted!
                         </Text>
                       </TouchableOpacity>:
-                      <TouchableOpacity onPress={()=>{setDistractionCount(distractionCount+1);setDistractionMessage(distractionMessages[(distractionCount+1)%4])}} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1}}>
+                      <TouchableOpacity onPress={()=>{setDistractionCount(distractionCount+1);setDistractionMessage(distractionMessages[(distractionCount+1)%4])}} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
                         <Text style={{color:'white',fontSize:40,fontWeight:"700"}}>
                           {distractionCount}
                         </Text>
@@ -383,10 +383,13 @@ export default function StopWatchScreen({navigation}){
                 
                   <FlatList
                     data={audioData}
-                    CellRendererComponent={({item})=>(<AudioSelectionElement name={item.audioName} location={item.location}/>)}
+                    renderItem={({item})=>(<AudioSelectionElement name={item.audioName} location={item.location}/>)}
                     keyExtractor={item=>item.id}
                     extraData={audioName}
                     ListHeaderComponent={HeaderAudioSelection}
+                    initialNumToRender={5}
+                    windowSize={5}
+                    removeClippedSubviews={true}
                    />
                   
                 </View>
@@ -440,6 +443,9 @@ export default function StopWatchScreen({navigation}){
                   data={labelData}
                   CellRendererComponent={({item})=>(<LabelComponent color={item.labelColor} label={item.labelText} index={item.ID}/>)}
                   keyExtractor={item=>item.index}
+                  initialNumToRender={10}
+                  windowSize={10}
+                  removeClippedSubviews={true}
                 />
 
                

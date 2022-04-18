@@ -83,7 +83,7 @@ export function readLabels(data){
                     if(len>0){
                         for(let i=0;i<results.rows.length;i++){
                             res.push(results.rows.item(i))
-                            //console.log(results.rows.item(i).ID,results.rows.item(i).labelText,results.rows.item(i).labelColor)
+                            console.log(results.rows.item(i).ID,results.rows.item(i).labelText,results.rows.item(i).labelColor)
         
                         }
                         dispatch(readLabelsSuccess(res))

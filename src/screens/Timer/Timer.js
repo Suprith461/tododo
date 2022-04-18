@@ -1,17 +1,19 @@
-import { StyleSheet,TextInput, Text, View ,TouchableOpacity, Modal,Easing,FlatList,Dimensions,TouchableHighlight} from 'react-native';
+import { TouchableWithoutFeedback,StyleSheet,TextInput, Text, View ,TouchableOpacity, Modal,Easing,FlatList,Dimensions,TouchableHighlight,ToastAndroid} from 'react-native';
 import {useDispatch,useSelector} from 'react-redux'
 import  React,{useState,useRef,useEffect} from 'react';
 import { MaterialCommunityIcons ,Entypo} from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
-import {readLabels} from './../../redux/timer/timerActions'
+import {readLabels,stopWatchSaveSession} from './../../redux/timer/timerActions'
 import ScrollPicker from 'react-native-wheel-scrollview-picker';
 import Countdown from './../../components/Countdown'
 import StopWatch from './../../components/StopWatch'
 import CurrentTime from './../../components/CurrentTime'
-import { useStopwatch } from 'react-timer-hook';
-import HorizontalPicker from '@vseslav/react-native-horizontal-picker';
+import { useStopwatch,useTime,useTimer } from 'react-timer-hook';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
+
 import ValuePicker from "react-native-picker-horizontal";
+
 
 
 export default function Timer({navigation}){
@@ -24,18 +26,44 @@ export default function Timer({navigation}){
     const [labelName,setLabelName] = useState("unlabelled")
     const progressBarRef = useRef(null)
     const [pickedTime,setPickedTime] = useState(false);
-    const [timerSettingsModal,setTimerSettingsModal] = useState(true)
+    const [timerSettingsModal,setTimerSettingsModal] = useState(false)
     const clockRef = useRef();
     const [revise,setRevise] = useState("before") 
+    const [labelColor,setLabelColor] = useState("black")
     
+    const [sessions,setSessions] = useState(1)
+    const [tempSessions,setTempSessions] = useState(1)
+
+    const [breakTime,setBreakTime] = useState(1)
+    const [breakTimeTemp,setBreakTimeTemp] = useState(1)
+
+    const [reviseTime,setReviseTime] = useState(1)
+    const [reviseTimeTemp,setReviseTimeTemp] = useState(1)
+
+    const [workTime,setWorkTime] = useState(1)
+    const [workTimeTemp,setWorkTimeTemp] = useState(1)
+
+    const [countdownValueChanged,setCountDownValueChanged] = useState(false);
+    const [timerExpired,setTimerExpired] = useState(false)
+    const [abortModal,setAbortModal] = useState(false);
 
     const labelData = useSelector(state=>state.timer.readLabelsPayload);
 
-    const [cuurentHeightOfLabelModal,setCurrentHeightOfLabelModal] = useState(20);
+    const [curentHeightOfLabelModal,setCurrentHeightOfLabelModal] = useState(20);
     const height = Dimensions.get("screen").height
     
     const dispatch = useDispatch();
-
+    
+    const [isCountdownRunning,setIsCountDownRunning] = useState(false);
+    const [countDownPause,setCountDownPause] = useState(()=>{});
+    const [countDownResume,setCountDownResume] = useState(()=>{});
+    const [previouslyRunMode,setPreviouslyRunMode] = useState("focus") //revise,break
+    
+    const [distractionCount,setDistractionCount] = useState(0);
+    const [distractionMessage,setDistractionMessage] = useState("Start working again!")
+    const [comment,setComment] = useState("Comment/Note...")
+    const [commentSecondary,setCommentSecondary] = useState("Comment/Note...")
+    const currentTime = useTime({ format: '12-hour'});
     const {
       seconds,
       minutes,
@@ -46,76 +74,121 @@ export default function Timer({navigation}){
       pause,
       reset,
     } = useStopwatch({ autoStart: true });
-    
+
     const distractionMessages = [
       "Don't get distracted!",
       "Focus on your work!",
       "Stop dreaming!",
       "Stay focused!"
   ];
-    const [distractionCount,setDistractionCount] = useState(0);
-    const [distractionMessage,setDistractionMessage] = useState("Start working again!")
-    const [comment,setComment] = useState("Comment/Note...")
-    const [commentSecondary,setCommentSecondary] = useState("Comment/Note...")
+
+    
+    
+    //To handle abort,save and discard modal
     useEffect(()=>{
-      //setLabelModalStatus(true)
+      if(timerExpired && sessions==0){
+        setAbortModal(true)
+      }
+    },[timerExpired])
+
+
+    useEffect(()=>{
+      if(timerExpired && sessions>0){
+        if(previouslyRunMode=="revise" ){
+          if(revise=="before"){
+            setPreviouslyRunMode("focus")
+          }else if(revise=="after" && sessions>=1){
+            setPreviouslyRunMode("break")
+            setSessions(sessions-1)
+          }
+        }else if(previouslyRunMode=="focus"){
+          if(revise=="before" && sessions>=1){
+            setPreviouslyRunMode("break")
+            setSessions(sessions-1)
+          }else if(revise=="after"){
+            setPreviouslyRunMode("revise")
+           
+          }
+        } else if(previouslyRunMode=="break"){
+          if(revise=="before" && sessions>=1){
+            setPreviouslyRunMode("revise")
+            setSessions(sessions-1)
+          }else if(revise=="after" && sessions>=1){
+            setPreviouslyRunMode("focus")
+            setSessions(sessions-1)
+           
+          }
+        }
+      }
+    },[timerExpired])
+
+    useEffect(()=>{
+      if(previouslyRunMode=="focus" && sessions>0){
+        setWorkTime(workTimeTemp)
+        setCountDownValueChanged(true)
+      }else if(previouslyRunMode=="break" && sessions>0){
+        setWorkTime(breakTime)
+        setCountDownValueChanged(true)
+      }else if(previouslyRunMode=="revise" && sessions>0){
+        setWorkTime(reviseTime)
+        setCountDownValueChanged(true)
+      }
+    },[previouslyRunMode])
+    
+   //To retrieve saved labels on screen launch
+    useEffect(()=>{
       dispatch(readLabels())
 
     },[navigation.isFocused()])
 
-    function SelectWorkTargetComp({data}){
-      return(
-        <View style={{height:50,display:'flex',width:100,alignItems:'center',justifyContent:'center'}}>
-          <Text style={{display:'flex',flex:1,fontSize:18,color:'gray'}}>{data}</Text>
-        </View>
-      )
-    }
+    
 
-  function LabelComponent({color,index,label}){
-    return(
-      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{setLabelName(label);setLabelModalStatus(false)}}>
-        <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
-          <View style={{height:10,width:10,borderRadius:10,backgroundColor:color}}></View>
-        </View>
-        <View style={{display:'flex',flex:0.75,justifyContent:"center"}}>
-          <Text >{label}</Text>
-        </View>
-    </TouchableOpacity>
-    )
-
+  
+  async function handleSave(){
+    dispatch(stopWatchSaveSession({labelColor:labelColor,labelText:labelName,hours:hours,minutes:minutes,distractions:distractionCount}))
+    ToastAndroid.show('Session Completed.', ToastAndroid.SHORT);
+    setAbortModal(false)
+    setDistractionCount(0)
+    deactivateKeepAwake()
+    reset()
+   
   }
-  function returnElapsedTime(){
-    let res = hours
-    if(minutes>30){
-      res+=0.5
-    }
-    return res
+  async function handleDiscard(){
+    setAbortModal(false)
+    deactivateKeepAwake()
+    reset()
+    setDistractionCount(0)
+   
   }
 
-  function returnTargetTimeData(){
-    const res=[]
-    let temp=0
-    while(temp!=24){
-      res.push(temp)
-      temp=temp+0.5
-    }
-    return res
-  }
+  function valuePickerInterpolateScale(index, itemWidth){
+    return { inputRange: [
+       itemWidth * (index - 3),
+       itemWidth * (index - 2),
+       itemWidth * (index - 1),
+       itemWidth * index,
+       itemWidth * (index + 1),
+       itemWidth * (index + 2),
+       itemWidth * (index + 3),
+     ],
+     outputRange: [1,1, 1, 1.8, 1, 1,1]}
+   }
+ 
+   function valuePickerInterpolateOpacity(index, itemWidth){
+     return {inputRange: [
+       itemWidth * (index - 3),
+       itemWidth * (index - 2),
+       itemWidth * (index - 1),
+       itemWidth * index,
+       itemWidth * (index + 1),
+       itemWidth * (index + 2),
+       itemWidth * (index + 3),
+     ],
+     outputRange: [0.5,0.5, 0.5, 1, 0.5, 0.5,0.5]}
+   }
+   
 
-  function LabelSectionFooter(){
-    return(
-      <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={()=>{setLabelModalStatus(false);navigation.navigate("addLabel")}}>
-        <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
-        
-        </View>
-        <View style={{display:'flex',flex:0.75,justifyContent:"center"}}>
-          <Text >Add label</Text>
-        </View>
-      </TouchableOpacity>
-    )
-  }
-
-  function returnWorkData(){
+function returnWorkData(){
     const res=[]
     for(let i=1;i<181;i++){
       res.push(i)
@@ -146,16 +219,248 @@ export default function Timer({navigation}){
     return Items.slice(1,25)
 
   }
-  function TimerSettingsScrollComp({data}){
-    return <Text style={{fontSize:18,fontWeight:'500',alignItems:'center',justifyContent:'center',marginHorizontal:10,borderWidth:1,padding:5,width:40,textAlign:'center'}}>{data}</Text>
-  }
+  function startTimer(){
+    activateKeepAwake()
+    setSessions(tempSessions)
+    setWorkTime(workTimeTemp)
+    setBreakTime(breakTimeTemp)
+    setReviseTime(reviseTimeTemp)
+    setCountDownValueChanged(true)
     
+    if(revise=="after"){
+      setPreviouslyRunMode("focus")
+    }else if(revise=="before"){
+      setPreviouslyRunMode("revise")
+    }
+    
+    
+    setTimerSettingsModal(false)
+
+  }
+
+  function calculateTimerEndTime(){
+    const totalTime = sessions*(workTime+reviseTime+breakTime)
+    const hoursR = Math.floor(totalTime/60)
+    const minutes = (totalTime-hoursR*60)
+    let resHour = currentTime.hours+hoursR
+    let resAmPm = currentTime.ampm
+    let resMinutes = minutes+currentTime.minutes
+    if(resMinutes>60){
+      resHour=resHour+1
+      resMinutes=resMinutes-60
+    }
+    if(resHour>=12){
+      if(resAmPm=="am"){
+        resAmPm="pm"
+      }else if(resAmPm=="pm"){
+        resAmPm="am"
+      }
+    }
+    return ""+resHour+" : "+resMinutes+" "+resAmPm
+  }
+
+  function handleReviseClick(){
+    if(revise=="after"){
+      setRevise("before")
+    }else{
+      setRevise("after")
+    }
+  }
+
+  function labelCompOnPress({color,index,label}){
+    console.log("Lable comp color",color)
+    setLabelName(label);
+    setLabelColor(color)
+    setLabelModalStatus(false)
+  }
+
+  function returnElapsedTime(){
+    let res = hours
+    if(minutes>30){
+      res+=0.5
+    }
+    return res
+  }
+
+  function returnTargetTimeData(){
+    const res=[]
+    let temp=0
+    while(temp!=24){
+      res.push(temp)
+      temp=temp+0.5
+    }
+    return res
+  }
+
+  function labelSecFooterOnPress(){
+    setLabelModalStatus(false);
+    navigation.navigate("addLabel")
+  }
+  
+  function handleLabelModalStatus(){
+    setLabelModalStatus(!labelModalStatus)
+  }
+  
+  function handleTimerModalStatus(){
+    setTimerModalStatus(!timerModalStatus)
+  }
+
+  function handleCommentsModalStatus(){
+    setCommentsModal(!commentsModal)
+  }
+  function handleDistractionCount(){
+    setDistractionCount(distractionCount+1);
+    setDistractionMessage(distractionMessages[(distractionCount+1)%4])
+  }
+
+  function handleTimerSettingsModal(){
+    setTimerSettingsModal(!timerSettingsModal)
+  }
+
+  function hanldeStopwatchPress(){
+   
+    Fullscreen.enableFullScreen();
+    navigation.replace()
+  }
+
+  function handleSetWorkTargetHours(){
+    setTargetHours(activeTargetHour);
+    setTimerModalStatus(false)
+  }
+
+  function handleSetComments(){
+    setComment(commentSecondary);
+    setCommentsModal(false)
+  }
+
+  function labelsModalOnLayout(event){
+    setCurrentHeightOfLabelModal(event.nativeEvent.layout.height)
+
+
+  }
+
+  function valuePickerRenderItem(item){
+    return <ValuePickerChild item={item}/>
+  }
+
+  
+function ValuePickerChild({item}){
+    return(
+      <Text style={{
+        width: 40,
+        textAlign: 'center',
+        justifyContent: 'center',
+        alignItems: "center",
+        fontWeight:'500',
+        color:'black'
+       
+      }}>{item}</Text>
+    )
+  }
+
+  function SelectWorkTargetComp({data}){
+    return(
+      <View style={{height:50,display:'flex',width:100,alignItems:'center',justifyContent:'center'}}>
+        <Text style={{display:'flex',flex:1,fontSize:18,color:'gray'}}>{data}</Text>
+      </View>
+    )
+  }
+
+
+
+
+
+function LabelComponent({color,index,label}){
+  return(
+    <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={labelCompOnPress}>
+      <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
+        <View style={{height:10,width:10,borderRadius:10,backgroundColor:color}}></View>
+      </View>
+      <View style={{display:'flex',flex:0.75,justifyContent:"center"}}>
+        <Text >{label}</Text>
+      </View>
+  </TouchableOpacity>
+  )
+
+}
+
+
+function LabelSectionFooter(){
+  return(
+    <TouchableOpacity style={{display:'flex',flexDirection:'row',height:50}} onPress={labelSecFooterOnPress}>
+      <View style={{display:'flex',flex:0.25,alignItems:'center',justifyContent:"center"}}>
+      
+      </View>
+      <View style={{display:'flex',flex:0.75,justifyContent:"center"}}>
+        <Text >Add label</Text>
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+  
+
+  
+  
+
+  function InsideCircularProgress(){
+
+    if( previouslyRunMode=="focus"){
+
+    
+    return(
+      distractionCount==0?
+                       <TouchableOpacity onPress={handleDistractionCount} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
+                        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
+                          Hit Me
+                        </Text>
+                        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
+                          When you are distracted!
+                        </Text>
+                      </TouchableOpacity>:
+                      <TouchableOpacity onPress={handleDistractionCount} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
+                        <Text style={{color:'white',fontSize:40,fontWeight:"700"}}>
+                          {distractionCount}
+                        </Text>
+                       
+                      </TouchableOpacity>
+      )
+    }else if(previouslyRunMode=="break"){
+      return(
+      <TouchableOpacity style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
+        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
+          Take a break
+        </Text>
+      
+      </TouchableOpacity>)
+    }else if(previouslyRunMode=="revise"){
+      return(
+        <TouchableOpacity  style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1,width:'100%'}}>
+            <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
+                 Revise
+            </Text>
+        </TouchableOpacity>
+      )
+    }
+
+  }
+
+ 
+  function flatListLabelsRenderItems({item}){
+    return <LabelComponent color={item.labelColor} label={item.labelText} index={item.ID}/>
+  }
+  function scrollPickerRenderItem(data, index){
+                            
+    return <SelectWorkTargetComp data={data}/>
+  }
+
+  
     return(
         <View style={styles.rootView}>
          
 
           <View style={{display:'flex',height:40,width:'100%',alignItems:'flex-end',justifyContent:'flex-end',marginTop:40,borderColor:'white'}}>
-                <TouchableOpacity style={styles.targetHours} onPress={()=>{setTimerModalStatus(true)}}>
+                <TouchableOpacity style={styles.targetHours} onPress={handleTimerModalStatus}>
                     <Text style={{color:'white',fontSize:20,fontWeight:'700',marginHorizontal:10}}>{returnElapsedTime()}{returnElapsedTime()<targetHours && targetHours>0 && "/"+targetHours}</Text>
                 </TouchableOpacity>
             </View>
@@ -167,10 +472,10 @@ export default function Timer({navigation}){
 
             {/*All the text part comes here */}
             <View style={{height:180,width:"90%",borderWidth:1,borderColor:'white',marginHorizontal:"5%",display:'flex',alignItems:'center',justifyContent:"flex-end"}}>
-                  {mode=="timer"?<TouchableOpacity onPress={()=>{setCommentsModal(true)}}><Text style={{color:"#FFFFFF90",fontSize:16}}>{comment}</Text></TouchableOpacity>:null}
+                  {mode=="timer"?<TouchableOpacity onPress={handleCommentsModalStatus}><Text style={{color:"#FFFFFF90",fontSize:16}}>{comment}</Text></TouchableOpacity>:null}
                   <Text style={{color:"#FFFFFF",fontSize:16}}>{distractionMessage}</Text>
                   
-                  {mode=='timer'?<Countdown/>:<StopWatch/>}   
+                  {mode=='timer'?<Countdown setCountDownResume={setCountDownResume} setCountDownPause={setCountDownPause} setIsCountDownRunning={setIsCountDownRunning} setTimerExpired={setTimerExpired} minutes={workTime} valueChanged={countdownValueChanged} setValueChanged={setCountDownValueChanged}/>:<StopWatch/>}   
                   
             </View>
             
@@ -189,64 +494,62 @@ export default function Timer({navigation}){
                 >
                   {
                     ()=>(
-                       distractionCount==0?
-                       <TouchableOpacity onPress={()=>{setDistractionCount(distractionCount+1);setDistractionMessage(distractionMessages[(distractionCount+1)%4])}} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1}}>
-                        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
-                          Hit Me
-                        </Text>
-                        <Text style={{color:'white',fontSize:15,fontWeight:"700"}}>
-                          When you are distracted!
-                        </Text>
-                      </TouchableOpacity>:
-                      <TouchableOpacity onPress={()=>{setDistractionCount(distractionCount+1);setDistractionMessage(distractionMessages[(distractionCount+1)%4])}} style={{display:'flex',alignItems:'center',justifyContent:'center',flex:1}}>
-                        <Text style={{color:'white',fontSize:40,fontWeight:"700"}}>
-                          {distractionCount}
-                        </Text>
-                       
-                      </TouchableOpacity>
+                      <InsideCircularProgress/> 
                     )
                   }
                 </AnimatedCircularProgress>
             </View>
 
-            {/*All the buttons like resume ,pause,stop */}
-            <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',margin:"5%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
-                  <TouchableOpacity style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} ><Text style={{fontSize:13,color:'white'}}>Timer</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={()=>{setMode('stopwatch');Fullscreen.enableFullScreen();}} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Stopwatch</Text></TouchableOpacity>
+            {/*Buttons Timer and stopwatch*/}
+            { !isCountdownRunning ?
+            <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',marginVertical:"5%",marginHorizontal:"3%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+                  <TouchableOpacity onPress={handleTimerSettingsModal} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} ><Text style={{fontSize:13,color:'white'}}>Timer</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={hanldeStopwatchPress} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Stopwatch</Text></TouchableOpacity>
             </View>
+              :
+            <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',marginVertical:"5%",width:"100%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+                  <TouchableOpacity onPress={handleTimerSettingsModal} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,marginLeft:60,width:100,display:'flex',alignItems:'center',justifyContent:'center'}} ><Text style={{fontSize:13,color:'white'}}>{!isCountdownRunning?"Resume":"Pause"}</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={hanldeStopwatchPress} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:90,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Abort</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={hanldeStopwatchPress} style={{borderColor:"gray",borderWidth:0.5,height:40,width:40,borderRadius:40,marginLeft:10,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:10,color:'white'}}>Skip</Text></TouchableOpacity>
+            </View>}
 
             {/*Label section */}
-            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={()=>{setLabelModalStatus(true)}}>
+            <TouchableOpacity style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={handleLabelModalStatus}>
               <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>{labelName}</Text>
               
               
               <MaterialCommunityIcons name="label-outline" size={30} color="gray" style={{transform: [{rotateY: '180deg'}]}}/>
             </TouchableOpacity>
+
+
+            <View style={{width:"100%",height:30,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={handleLabelModalStatus}>
+              <Text style={{color:'gray',fontWeight:'500',paddingHorizontal:5}}>Sessions {sessions}/{tempSessions}</Text>
+            </View>
               
 
-           {/*Labels Modal */}
+           {/*Labels Modal*/}
             <Modal
+              useNativeDriver={true}
               animationType="slide"
               transparent={true}
               visible={labelModalStatus}
               style={{display:'flex'}}
-              onRequestClose={()=>setLabelModalStatus(false)}
-            
-              
+              onRequestClose={handleLabelModalStatus}
+              hardwareAccelerated={true}
             >
-              <TouchableOpacity style={{display:'flex',borderWidth:1,width:'100%',height:height-cuurentHeightOfLabelModal}} onPress={()=>{setLabelModalStatus(false)}}></TouchableOpacity>
+              <TouchableOpacity style={{display:'flex',borderWidth:1,width:'100%',height:height-curentHeightOfLabelModal}} onPress={handleLabelModalStatus}></TouchableOpacity>
               <View
-                onLayout={(event)=>{
-                  setCurrentHeightOfLabelModal(event.nativeEvent.layout.height)
-
-                }} 
+                onLayout={labelsModalOnLayout} 
                 style={{display:"flex",width:"100%",backgroundColor:'white',position:'absolute',bottom:5,zIndex:10}}>
                 
                 <FlatList
                   ListFooterComponent={LabelSectionFooter}
                   data={labelData}
-                  CellRendererComponent={({item})=>(<LabelComponent color={item.labelColor} label={item.labelText} index={item.ID}/>)}
+                  renderItem={flatListLabelsRenderItems}
                   keyExtractor={item=>item.index}
+                  initialNumToRender={10}
+                  windowSize={10}
+                  removeClippedSubviews={true}
                 />
 
                
@@ -258,13 +561,12 @@ export default function Timer({navigation}){
 
             {/*Modal in the center for selecting time */}
             <Modal
+                hardwareAccelerated={true}
+                useNativeDriver={true}
                 animationType="slide"
                 transparent={true}
                 visible={timerModalStatus}
-                onRequestClose={() => {
-               
-                    setTimerModalStatus(!timerModalStatus);
-                }}>
+                onRequestClose={handleTimerModalStatus}>
                 <View style={styles.centeredView}>
 
                 <View style={styles.modalView}>
@@ -278,10 +580,7 @@ export default function Timer({navigation}){
                           dataSource={returnTargetTimeData()}
                           selectedIndex={0}
                           activeItemTextStyle={{color:'black',fontSize:20,fontWeight:'500'}}
-                          renderItem={(data, index) => {
-                            
-                            return <SelectWorkTargetComp data={data}/>
-                          }}
+                          renderItem={scrollPickerRenderItem}
                           onValueChange={(data, selectedIndex) => {
                             setActiveTargetHour(data)
                           }}
@@ -295,8 +594,8 @@ export default function Timer({navigation}){
                         />
                     </View>
                     <View style={{display:'flex',flexDirection:'row',alignItems:'flex-end', justifyContent:'flex-end'}}>
-                        <TouchableOpacity onPress={()=>setTimerModalStatus(!timerModalStatus)}><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={()=>{setTargetHours(activeTargetHour);setTimerModalStatus(false)}}><Text style={{color:'#34ebb1',margin:20,marginLeft:30}}>SET</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={handleTimerModalStatus}><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={handleSetWorkTargetHours}><Text style={{color:'#34ebb1',margin:20,marginLeft:30}}>SET</Text></TouchableOpacity>
                         
                     </View>
                 </View>
@@ -304,16 +603,18 @@ export default function Timer({navigation}){
             </Modal>
             {/*Modal for comments */}
             <Modal
+              hardwareAccelerated={true}
+              useNativeDriver={true}
               animationType="fade"
               transparent={true}
               visible={commentsModal}
               style={{display:'flex',flex:1,alignItems:'center',justifyContent:"center"}}
-              onRequestClose={()=>setAbortModal(false)}
+              onRequestClose={handleCommentsModalStatus}
                 
               
             >
               <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
-                <TouchableOpacity style={{display:'flex',flex:0.3,width:'100%'}} onPress={()=>{setCommentsModal(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',flex:0.3,width:'100%'}} onPress={handleCommentsModalStatus}></TouchableOpacity>
                 <View style={{display:"flex",flex:0.3,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5,alignItems:'center'}}>
                   <TextInput
                     onChangeText={(text)=>{setCommentSecondary(text)}}
@@ -324,77 +625,42 @@ export default function Timer({navigation}){
                     multiline
                   />
                   <View style={{display:'flex',flexDirection:'row',alignItems:'flex-end', justifyContent:'flex-end'}}>
-                        <TouchableOpacity onPres={()=>{setCommentsModal(false)}} ><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
-                        <TouchableOpacity onPress={()=>{setComment(commentSecondary);setCommentsModal(false)}}><Text style={{color:'#34ebb1',margin:20,marginLeft:30}}>SET</Text></TouchableOpacity>
+                        <TouchableOpacity onPres={handleCommentsModalStatus} ><Text style={{color:'#34ebb1',margin:20,marginRight:30}}>CANCEL</Text></TouchableOpacity>
+                        <TouchableOpacity onPress={handleSetComments}><Text style={{color:'#34ebb1',margin:20,marginLeft:30}}>SET</Text></TouchableOpacity>
                         
                     </View>
                 
                 </View>
-                <TouchableOpacity style={{display:'flex',flex:0.4}} onPress={()=>{setCommentsModal(false)}}></TouchableOpacity>
+                <TouchableOpacity style={{display:'flex',flex:0.4}} onPress={handleCommentsModalStatus}></TouchableOpacity>
               </View>
             </Modal>
 
             {/*Timer settings modal */}
             <Modal
+              hardwareAccelerated={true}
+              useNativeDriver={true}
               animationType="slide"
               transparent={true}
               visible={timerSettingsModal}
               style={{display:'flex'}}
-              onRequestClose={()=>setTimerSettingsModal(false)}
-            
-              
+              onRequestClose={handleTimerSettingsModal}
             >
-              <TouchableOpacity style={{display:'flex',width:'100%',height:"33%"}} onPress={()=>{setTimerSettingsModal(false)}}></TouchableOpacity>
+              <TouchableOpacity style={{display:'flex',width:'100%',height:"33%",borderColor:'white',borderWidth:1}} onPress={handleTimerSettingsModal}></TouchableOpacity>
               <View style={{display:"flex",width:"100%",backgroundColor:'white',position:'absolute',bottom:5,zIndex:10,height:"67%"}}>
                 <View style={{width:'100%',height:45,alignItems:'center',borderColor:'black',marginTop:10,justifyContent:'center',flexDirection:'row',paddingHorizontal:15}}>
                     <Text style={{flex:0.15,fontSize:15,color:'gray',fontWeight:'700',paddingHorizontal:5}}>Work</Text>
                     <View style={{flex:0.65,alignItems:'center',justifyContent:"center"}}>
                       <ValuePicker
-                        initialIndex={59}
+                        useNativeDriver={true}
+                        onChange={(index) => setWorkTimeTemp(index)}
                         style={{flex: 1,backgroundColor: '#fff',alignItems: 'center',justifyContent: 'center'}}
                         data={returnWorkData()}
-                        renderItem={(item) => (
-                          <Text style={{
-                           
-                            width: 40,
-                            textAlign: 'center',
-                            justifyContent: 'center',
-                            alignItems: "center",
-                            fontWeight:'500',
-                            color:'black'
-                           
-                          }}>{item}</Text>
-                        )}
+                        passToFlatList={{useNativeDriver:true,windowSize:10,removeClippedSubviews:true,initialNumToRender: 10}}
+                        renderItem={valuePickerRenderItem}
                         itemWidth={40}
                         mark={null}
-                        interpolateScale={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [1,1, 1, 1.8, 1, 1,1]
-                          })
-                        }
-                        interpolateOpacity={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [0.5,0.5, 0.5, 1, 0.5, 0.5,0.5]
-                          })
-                        }
+                        interpolateScale={valuePickerInterpolateScale}
+                        interpolateOpacity={valuePickerInterpolateOpacity}
                       />
             
                     </View>
@@ -405,51 +671,16 @@ export default function Timer({navigation}){
                     <Text style={{flex:0.15,fontSize:15,color:'gray',fontWeight:'700',paddingHorizontal:5}}>Revise</Text>
                     <View style={{flex:0.65,alignItems:'center',justifyContent:"center"}}>
                       <ValuePicker
-                        initialIndex={14}
+                        useNativeDriver={true}
+                        passToFlatList={{useNativeDriver:true,windowSize:10,removeClippedSubviews:true,initialNumToRender: 10}}
+                        onChange={(index) => setReviseTimeTemp(index+1)}
                         style={{flex: 1,backgroundColor: '#fff',alignItems: 'center',justifyContent: 'center'}}
-                        data={returnWorkData()}
-                        renderItem={(item) => (
-                          <Text style={{
-                           
-                            width: 40,
-                            textAlign: 'center',
-                            justifyContent: 'center',
-                            alignItems: "center",
-                            fontWeight:'500',
-                            color:'black'
-                           
-                          }}>{item}</Text>
-                        )}
+                        data={returnReviseData()}
+                        renderItem={valuePickerRenderItem}
                         itemWidth={40}
                         mark={null}
-                        interpolateScale={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [1,1, 1, 1.8, 1, 1,1]
-                          })
-                        }
-                        interpolateOpacity={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [0.5,0.5, 0.5, 1, 0.5, 0.5,0.5]
-                          })
-                        }
+                        interpolateScale={valuePickerInterpolateScale}
+                        interpolateOpacity={valuePickerInterpolateOpacity}
                       />
             
                     </View>
@@ -460,51 +691,16 @@ export default function Timer({navigation}){
                     <Text style={{flex:0.15,fontSize:15,color:'gray',fontWeight:'700',paddingHorizontal:5}}>Break</Text>
                     <View style={{flex:0.65,alignItems:'center',justifyContent:"center"}}>
                       <ValuePicker
-                        initialIndex={4}
+                        useNativeDriver={true}
+                        passToFlatList={{useNativeDriver:true,windowSize:10,removeClippedSubviews:true,initialNumToRender: 10}}
+                        onChange={(index) => setBreakTimeTemp(index+1)}
                         style={{flex: 1,backgroundColor: '#fff',alignItems: 'center',justifyContent: 'center'}}
-                        data={returnWorkData()}
-                        renderItem={(item) => (
-                          <Text style={{
-                           
-                            width: 40,
-                            textAlign: 'center',
-                            justifyContent: 'center',
-                            alignItems: "center",
-                            fontWeight:'500',
-                            color:'black'
-                           
-                          }}>{item}</Text>
-                        )}
+                        data={returnBreakData()}
+                        renderItem={valuePickerRenderItem}
                         itemWidth={40}
                         mark={null}
-                        interpolateScale={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [1,1, 1, 1.8, 1, 1,1]
-                          })
-                        }
-                        interpolateOpacity={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [0.5,0.5, 0.5, 1, 0.5, 0.5,0.5]
-                          })
-                        }
+                        interpolateScale={valuePickerInterpolateScale}
+                        interpolateOpacity={valuePickerInterpolateOpacity}
                       />
             
                     </View>
@@ -515,51 +711,16 @@ export default function Timer({navigation}){
                     <Text style={{flex:0.2,fontSize:15,color:'gray',fontWeight:'700',paddingHorizontal:5}}>Sessions</Text>
                     <View style={{flex:0.8,alignItems:'center',justifyContent:"center",paddingLeft:15}}>
                       <ValuePicker
-                        initialIndex={4}
+                        useNativeDriver={true}
+                        passToFlatList={{useNativeDriver:true,windowSize:10,removeClippedSubviews:true,initialNumToRender: 10}}
+                        onChange={(index)=>setTempSessions(index+1)}
                         style={{flex: 1,backgroundColor: '#fff',alignItems: 'center',justifyContent: 'center'}}
-                        data={returnWorkData()}
-                        renderItem={(item) => (
-                          <Text style={{
-                           
-                            width: 40,
-                            textAlign: 'center',
-                            justifyContent: 'center',
-                            alignItems: "center",
-                            fontWeight:'500',
-                            color:'black'
-                           
-                          }}>{item}</Text>
-                        )}
+                        data={returnSessionsData()}
+                        renderItem={valuePickerRenderItem}
                         itemWidth={40}
                         mark={null}
-                        interpolateScale={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [1,1, 1, 1.8, 1, 1,1]
-                          })
-                        }
-                        interpolateOpacity={
-                          (index, itemWidth) => ({
-                            inputRange: [
-                              itemWidth * (index - 3),
-                              itemWidth * (index - 2),
-                              itemWidth * (index - 1),
-                              itemWidth * index,
-                              itemWidth * (index + 1),
-                              itemWidth * (index + 2),
-                              itemWidth * (index + 3),
-                            ],
-                            outputRange: [0.5,0.5, 0.5, 1, 0.5, 0.5,0.5]
-                          })
-                        }
+                        interpolateScale={valuePickerInterpolateScale}
+                        interpolateOpacity={valuePickerInterpolateOpacity}
                       />
             
                     </View>
@@ -567,26 +728,27 @@ export default function Timer({navigation}){
                 </View>
 
                 {/*Revisebefore and reviseafter button */}
-                <View style={{height:80,width:'100%',borderWidth:1,borderColor:'black',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
-                  <TouchableOpacity style={{borderWidth:revise=="before"?0:1,borderColor:'gray',borderRadius:20,paddingHorizontal:15,paddingVertical:5,marginHorizontal:10,backgroundColor:revise=="before"?"#00acc2":'white'}}><Text style={{color:revise=="before"?"white":'gray'}}>Revise before</Text></TouchableOpacity>
-                  <TouchableOpacity style={{borderWidth:revise=="after"?0:1,borderColor:'gray',borderRadius:20,paddingHorizontal:15,paddingVertical:5,marginHorizontal:10,backgroundColor:revise=="after"?"#00acc2":'white'}}><Text style={{color:revise=="after"?"white":'gray'}}>Revise After</Text></TouchableOpacity>
+                <View style={{height:80,width:'100%',borderColor:'black',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
+                  <TouchableOpacity onPress={handleReviseClick} style={{borderWidth:revise=="before"?0:1,borderColor:'gray',borderRadius:20,paddingHorizontal:15,paddingVertical:5,marginHorizontal:10,backgroundColor:revise=="before"?"#00acc2":'white'}}><Text style={{color:revise=="before"?"white":'gray'}}>Revise before</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={handleReviseClick} style={{borderWidth:revise=="after"?0:1,borderColor:'gray',borderRadius:20,paddingHorizontal:15,paddingVertical:5,marginHorizontal:10,backgroundColor:revise=="after"?"#00acc2":'white'}}><Text style={{color:revise=="after"?"white":'gray'}}>Revise After</Text></TouchableOpacity>
                 </View>
 
                 {/*label button */}
-                <TouchableOpacity style={{width:"100%",height:60,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={()=>{setLabelModalStatus(true)}}>
+                <TouchableOpacity style={{width:"100%",height:60,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={handleLabelModalStatus}>
                   <MaterialCommunityIcons name="label-outline" size={40} color="#00000080" />
                   <Text style={{color:'black',fontWeight:'500',paddingHorizontal:15,fontSize:18}}>{labelName}</Text>
                 </TouchableOpacity>
 
-                {/*comment button */}
-                <TouchableOpacity style={{width:"100%",height:60,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={()=>{setCommentsModal(true)}}>
+                
+               
+                <TouchableOpacity style={{width:"100%",height:60,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={handleCommentsModalStatus}>
                   <Entypo name="text" size={40} color="#00000080" />
                   <Text style={{color:'black',fontWeight:'500',paddingHorizontal:15,fontSize:18}}>{comment}</Text>
                 </TouchableOpacity>
 
                 {/*start button */}
-                <View style={{height:80,width:'100%',borderWidth:1,borderColor:'black',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
-                  <TouchableOpacity style={{borderRadius:60,paddingVertical:15,backgroundColor:"#00acc2",width:'80%',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <View style={{height:80,width:'100%',borderColor:'black',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
+                  <TouchableOpacity onPress={startTimer} style={{borderRadius:60,paddingVertical:15,backgroundColor:"#00acc2",width:'80%',display:'flex',alignItems:'center',justifyContent:'center'}}>
                     <Text style={{color:"white",fontSize:18,fontWeight:'700'}}>Start</Text>
                   </TouchableOpacity>
                 </View>
@@ -594,13 +756,37 @@ export default function Timer({navigation}){
                 {/*The timer will end text */}
                
                 <View style={{paddingVertical:5,width:'100%',display:'flex',alignItems:'center',justifyContent:'center',height:30}}>
-                    <Text style={{color:"gray",fontSize:15,fontWeight:'700'}}>Timer will finish at 10:47 PM</Text>
+                    <Text style={{color:"gray",fontSize:15,fontWeight:'700'}}>Timer will finish at {calculateTimerEndTime()}</Text>
                 </View>
                
 
         
               </View>
             </Modal>
+
+            {/*Modal displayed when abort is pressed */}
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={abortModal}
+              style={{display:'flex',flex:1,alignItems:'center',justifyContent:"center"}}
+              onRequestClose={()=>setAbortModal(false)}
+                
+              
+            >
+              <View style={{display:'flex',flex:1,backgroundColor:'#FFFFFF20'}}>
+                <TouchableOpacity style={{display:'flex',flex:0.32,width:'100%'}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+                <View style={{display:"flex",flex:0.2,backgroundColor:'white',zIndex:10,marginHorizontal:20,borderRadius:5}}>
+                    <TouchableHighlight underlayColor="#60aadb40" onPress={handleSave} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'green',fontWeight:'700',fontSize:18}}>Completed, Save the Session</Text></TouchableHighlight>
+                    <TouchableHighlight underlayColor="#60aadb40" onPress={handleDiscard} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'red',fontWeight:'700',fontSize:18}}>Discard</Text></TouchableHighlight>
+                    <TouchableHighlight underlayColor="#60aadb40" onPress={()=>{setAbortModal(false)}} style={{display:"flex",alignItems:'center',justifyContent:"center",flex:0.33}}><Text style={{color:'yellow',fontWeight:'700',fontSize:18}}>Continue working</Text></TouchableHighlight>
+                  
+                
+                </View>
+                <TouchableOpacity style={{display:'flex',flex:0.48}} onPress={()=>{setAbortModal(false)}}></TouchableOpacity>
+              </View>
+            </Modal>
+
             
         </View>
     );

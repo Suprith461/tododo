@@ -1,8 +1,10 @@
-import React from 'react';
+import React,{useState,useEffect} from 'react';
 import {Text,View,TouchableOpacity} from 'react-native'
 import { useTimer } from 'react-timer-hook';
 
-function MyTimer({ expiryTimestamp }) {
+function MyTimer({setCountDownPause,setCountDownResume, expiryTimestamp,valueChanged ,setValueChanged,setTimerExpired,setIsCountDownRunning}) {
+
+  
   const {
     seconds,
     minutes,
@@ -13,7 +15,20 @@ function MyTimer({ expiryTimestamp }) {
     pause,
     resume,
     restart,
-  } = useTimer({ expiryTimestamp, onExpire: () => console.warn('onExpire called') });
+  } = useTimer({ expiryTimestamp, onExpire: () => {setTimerExpired(true)} });
+
+  useEffect(()=>{
+    if(valueChanged){
+      restart(expiryTimestamp,true)
+      setValueChanged(false)
+      setCountDownPause(pause)
+      setCountDownResume(start)
+    }
+  },[expiryTimestamp])
+
+  useEffect(()=>{
+    setIsCountDownRunning(isRunning)
+  },[isRunning])
 
 return (
     <View style={{textAlign: 'center'}}>
@@ -28,12 +43,13 @@ return (
   );
 }
 
-export default function Countdown() {
+export default function Countdown({setCountDownResume,setCountDownPause,minutes,valueChanged,setValueChanged,setTimerExpired,setIsCountDownRunning}) {
+  
   const time = new Date();
-  time.setSeconds(time.getSeconds() + 180); // 10 minutes timer
+  time.setSeconds(time.getSeconds() + minutes*60); // 10 minutes timer
   return (
     <View>
-      <MyTimer expiryTimestamp={time} />
+      <MyTimer setCountDownPause={setCountDownPause} setCountDownResume={setCountDownResume} expiryTimestamp={time} valueChanged={valueChanged} setValueChanged={setValueChanged} setTimerExpired={setTimerExpired} setIsCountDownRunning={setIsCountDownRunning}/>
     </View>
   );
 }
