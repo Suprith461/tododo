@@ -4,7 +4,7 @@ import  React,{useState,useRef,useEffect} from 'react';
 import { MaterialCommunityIcons,MaterialIcons ,Ionicons} from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
-import {readLabels,stopWatchSaveSession} from './../../redux/timer/timerActions'
+import {readLabels,stopWatchSaveSession,stopWatchSessionSuccess} from './../../redux/timer/timerActions'
 import ScrollPicker from 'react-native-wheel-scrollview-picker';
 import Countdown from './../../components/Countdown'
 import StopWatch from './../../components/StopWatch'
@@ -37,6 +37,7 @@ export default function StopWatchScreen({navigation}){
     const progressBarRef = useRef(null)
 
     const labelData = useSelector(state=>state.timer.readLabelsPayload);
+    const saveSessionStatus = useSelector(state=>state.timer.stopWatchSaveSessionPayload);
     const height = Dimensions.get("screen").height
     
     const dispatch = useDispatch();
@@ -78,7 +79,12 @@ export default function StopWatchScreen({navigation}){
     }
     return res
   }
-   
+   useEffect(()=>{
+    if(saveSessionStatus=="done"){
+      dispatch(stopWatchSaveSession(null))
+      navigation.replace("chooseTimerOrStopWatchScreen")
+    }
+   },[saveSessionStatus])
    
     useEffect(()=>{
       //setLabelModalStatus(true)
@@ -128,6 +134,7 @@ export default function StopWatchScreen({navigation}){
     function handleAbort(){
       setAbortModal(true)
       
+      
     }
 
     async function handleDiscard(){
@@ -138,6 +145,8 @@ export default function StopWatchScreen({navigation}){
       if(finalAudioName!=null && sound!=null && finalAudioName!="None"){
         await sound.unloadAsync();
       }
+      navigation.replace("chooseTimerOrStopWatchScreen")
+      
     }
 
     async function handleSave(){
@@ -150,7 +159,10 @@ export default function StopWatchScreen({navigation}){
       if(finalAudioName!=null && sound!=null && finalAudioName!="None"){
         await sound.unloadAsync();
       }
+      
     }
+
+    
 
     async function handlePause(){
       if(isRunning){

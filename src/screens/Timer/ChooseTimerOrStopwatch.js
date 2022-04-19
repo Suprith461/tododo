@@ -16,36 +16,34 @@ import ValuePicker from "react-native-picker-horizontal";
 
 
 
-export default function Timer({navigation,route}){
-
-  const data =route.params
-  
-
+export default function ChooseTimerOrStopWatch({navigation}){
     const [timerModalStatus,setTimerModalStatus]= useState(false);
     const [labelModalStatus,setLabelModalStatus] = useState(false);
-    const [targetHours,setTargetHours]=useState(data.targetHours);
+    const [targetHours,setTargetHours]=useState(0);
     const [activeTargetHour,setActiveTargetHour] = useState(0);
     const [mode,setMode] = useState('timer')
     const [commentsModal,setCommentsModal] = useState(false)
-    const [labelName,setLabelName] = useState(data.label)
+    const [labelName,setLabelName] = useState("unlabelled")
     const progressBarRef = useRef(null)
+    const [pickedTime,setPickedTime] = useState(false);
     const [timerSettingsModal,setTimerSettingsModal] = useState(false)
+    const clockRef = useRef();
     const [revise,setRevise] = useState("before") 
     const [labelColor,setLabelColor] = useState("black")
     
-    const [sessions,setSessions] = useState(data.sessions)
-    const [tempSessions,setTempSessions] = useState(data.sessions)
+    const [sessions,setSessions] = useState(1)
+    const [tempSessions,setTempSessions] = useState(1)
 
-    const [breakTime,setBreakTime] = useState(data.breakTime)
-    const [breakTimeTemp,setBreakTimeTemp] = useState(data.breakTime)
+    const [breakTime,setBreakTime] = useState(1)
+    const [breakTimeTemp,setBreakTimeTemp] = useState(1)
 
-    const [reviseTime,setReviseTime] = useState(data.reviseTime)
-    const [reviseTimeTemp,setReviseTimeTemp] = useState(data.reviseTime)
+    const [reviseTime,setReviseTime] = useState(1)
+    const [reviseTimeTemp,setReviseTimeTemp] = useState(1)
 
-    const [workTime,setWorkTime] = useState(data.workTime)
-    const [workTimeTemp,setWorkTimeTemp] = useState(data.workTime)
+    const [workTime,setWorkTime] = useState(1)
+    const [workTimeTemp,setWorkTimeTemp] = useState(1)
 
-    const [countdownValueChanged,setCountDownValueChanged] = useState(data.countdownValueChanged);
+    const [countdownValueChanged,setCountDownValueChanged] = useState(false);
     const [timerExpired,setTimerExpired] = useState(false)
     const [abortModal,setAbortModal] = useState(false);
 
@@ -61,24 +59,14 @@ export default function Timer({navigation,route}){
     
     const [distractionCount,setDistractionCount] = useState(0);
     const [distractionMessage,setDistractionMessage] = useState("Start working again!")
-    const [comment,setComment] = useState(data.comment)
-    const [commentSecondary,setCommentSecondary] = useState(data.commentSecondary)
+    const [comment,setComment] = useState("Comment/Note...")
+    const [commentSecondary,setCommentSecondary] = useState("Comment/Note...")
 
     
     const [expiryTimeStamp,setExpiryTimeStamp] = useState()
     
     const currentTime = useTime({ format: '12-hour'});
-    // const {
-    //   seconds,
-    //   minutes,
-    //   hours,
-    //   days,
-    //   isRunning,
-    //   start,
-    //   pause,
-    //   reset,
-    // } = useStopwatch({ autoStart: true });
-
+    
     const {
       seconds,
       minutes,
@@ -89,7 +77,7 @@ export default function Timer({navigation,route}){
       pause,
       resume,
       restart,
-    } = useTimer({ expiryTimeStamp ,autoStart:true,onExpire:()=>{setTimerExpired(true)}});
+    } = useTimer({ expiryTimeStamp ,autoStart:true});
   
    
    
@@ -99,10 +87,6 @@ export default function Timer({navigation,route}){
       "Stop dreaming!",
       "Stay focused!"
   ];
-
-  
-
-
 
   useEffect(()=>{
     const time = new Date();
@@ -114,7 +98,7 @@ export default function Timer({navigation,route}){
 
   useEffect(()=>{
     if(countdownValueChanged){
-      restart(expiryTimeStamp,true)
+      //restart(expiryTimeStamp,true)
       setCountDownValueChanged(false)
       console.log("Expiry timestamp changed")
     }
@@ -123,6 +107,7 @@ export default function Timer({navigation,route}){
     
     //To handle abort,save and discard modal
     useEffect(()=>{
+      console.log("sessions left",sessions)
       if(timerExpired && sessions==0){
         setAbortModal(true)
       }
@@ -272,8 +257,11 @@ function returnWorkData(){
     
     
     setTimerSettingsModal(false)
+    navigation.replace("timerScreen",{sessions:tempSessions,workTime:workTimeTemp,breakTime:breakTimeTemp,revise:revise,reviseTime:reviseTimeTemp,countdownValueChanged:true,label:labelName,targetHours:targetHours,comment:comment,commentSecondary:commentSecondary})
 
   }
+
+  
 
   function calculateTimerEndTime(){
     const totalTime = sessions*(workTime+reviseTime+breakTime)
@@ -356,8 +344,8 @@ function returnWorkData(){
 
   function hanldeStopwatchPress(){
    
-    Fullscreen.enableFullScreen();
-    navigation.replace()
+    
+    navigation.replace("stopWatchScreen")
   }
 
   function handleSetWorkTargetHours(){
@@ -374,6 +362,10 @@ function returnWorkData(){
     setCurrentHeightOfLabelModal(event.nativeEvent.layout.height)
 
 
+  }
+
+  function handleStopWatchClick(){
+    navigation.replace("stopWatchScreen")
   }
 
   
@@ -561,17 +553,17 @@ function LabelSectionFooter(){
             </View>
 
             {/*Buttons Timer and stopwatch*/}
-            { /*!isRunning ?
-            <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',marginVertical:"5%",marginHorizontal:"3%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
-                  <TouchableOpacity onPress={handleTimerSettingsModal} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}} ><Text style={{fontSize:13,color:'white'}}>Timer</Text></TouchableOpacity>
+           
+            <View style={{width:"90%",height:100,marginVertical:"5%",marginHorizontal:"3%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+                  <TouchableOpacity onPress={handleTimerSettingsModal} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:30,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:135,display:'flex',alignItems:'center',justifyContent:'center'}} ><Text style={{fontSize:13,color:'white'}}>Timer</Text></TouchableOpacity>
                   <TouchableOpacity onPress={hanldeStopwatchPress} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:125,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Stopwatch</Text></TouchableOpacity>
-            </View>:*/}
+            </View>
               
-            <View style={{width:"90%",height:100,marginVertical:"5%",width:"100%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
+            {/* <View style={{width:"90%",height:100,borderWidth:1,borderColor:'white',marginVertical:"5%",width:"100%",display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center'}}>
                   <TouchableOpacity onPress={handlePauseAndResume} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,marginLeft:60,width:100,display:'flex',alignItems:'center',justifyContent:'center'}} ><Text style={{fontSize:13,color:'white'}}>{!isRunning?"Resume":"Pause"}</Text></TouchableOpacity>
                   <TouchableOpacity onPress={hanldeAbortTimer} style={{borderColor:"gray",borderWidth:0.5,paddingHorizontal:20,paddingVertical:10,borderRadius:20,marginHorizontal:5,width:90,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:13,color:'white'}}>Abort</Text></TouchableOpacity>
                   <TouchableOpacity onPress={hanldeStopwatchPress} style={{borderColor:"gray",borderWidth:0.5,height:40,width:40,borderRadius:40,marginLeft:10,display:'flex',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:10,color:'white'}}>Skip</Text></TouchableOpacity>
-            </View>
+            </View> */}
 
             {/*Label section */}
             <TouchableOpacity style={{width:"100%",height:30,display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-end'}} onPress={handleLabelModalStatus}>
@@ -794,7 +786,7 @@ function LabelSectionFooter(){
                 </View>
 
                 {/*label button */}
-                <TouchableOpacity style={{width:"100%",height:60,borderWidth:1,borderColor:'white',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={handleLabelModalStatus}>
+                <TouchableOpacity style={{width:"100%",height:60,display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'flex-start'}} onPress={handleLabelModalStatus}>
                   <MaterialCommunityIcons name="label-outline" size={40} color="#00000080" />
                   <Text style={{color:'black',fontWeight:'500',paddingHorizontal:15,fontSize:18}}>{labelName}</Text>
                 </TouchableOpacity>

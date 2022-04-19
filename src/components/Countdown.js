@@ -2,7 +2,9 @@ import React,{useState,useEffect} from 'react';
 import {Text,View,TouchableOpacity} from 'react-native'
 import { useTimer } from 'react-timer-hook';
 
-function MyTimer({setCountDownPause,setCountDownResume, expiryTimestamp,valueChanged ,setValueChanged,setTimerExpired,setIsCountDownRunning}) {
+
+
+function MyTimer({ expiryTimestamp,valueChanged ,setValueChanged,setTimerExpired,setIsCountDownRunning}) {
 
   
   const {
@@ -43,13 +45,13 @@ return (
   );
 }
 
-export default function Countdown({setCountDownResume,setCountDownPause,minutes,valueChanged,setValueChanged,setTimerExpired,setIsCountDownRunning}) {
+export default function Countdown({minutes,valueChanged,setValueChanged,setTimerExpired,setIsCountDownRunning}) {
   
   const time = new Date();
   time.setSeconds(time.getSeconds() + minutes*60); // 10 minutes timer
   return (
     <View>
-      <MyTimer setCountDownPause={setCountDownPause} setCountDownResume={setCountDownResume} expiryTimestamp={time} valueChanged={valueChanged} setValueChanged={setValueChanged} setTimerExpired={setTimerExpired} setIsCountDownRunning={setIsCountDownRunning}/>
+      <MyTimer  expiryTimestamp={time} valueChanged={valueChanged} setValueChanged={setValueChanged} setTimerExpired={setTimerExpired} setIsCountDownRunning={setIsCountDownRunning}/>
     </View>
   );
 }
